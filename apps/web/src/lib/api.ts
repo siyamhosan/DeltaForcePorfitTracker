@@ -1,0 +1,112 @@
+import type {
+  ActiveSessionDto,
+  ActiveSessionRaidDto,
+  UploadAnalysisDto,
+  UploadConfirmWarningDto,
+  DashboardOverviewDto,
+  LeaderboardEntryDto,
+  SessionHistoryItem,
+  UploadJobDto,
+} from "@workspace/domain"
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000/v1"
+
+type GetToken = () => Promise<string | null>
+
+export class ApiError extends Error {
+  status: number
+  payload: unknown
+
+  constructor(message: string, status: number, payload: unknown) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.payload = payload
+  }
+}
+
+async function apiFetch<T>(path: string, getToken: GetToken, init?: RequestInit): Promise<T> {
+  const token = await getToken()
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  if (!response.ok) {
+    const rawText = await response.text().catch(() => "")
+    let parsedBody: { error?: string; message?: string } | null = null
+    if (rawText) {
+      try {
+        parsedBody = JSON.parse(rawText) as { error?: string; message?: string }
+      } catch {
+        parsedBody = null
+      }
+    }
+    const message =
+      response.status >= 500
+        ? "Server error. Please try again."
+        : parsedBody?.error ?? parsedBody?.message ?? `Request failed: ${response.status}`
+    const payload = parsedBody ?? (rawText ? { raw: rawText } : null)
+    throw new ApiError(message, response.status, payload)
+  }
+
+  return (await response.json()) as T
+}
+
+export function createApi(getToken: GetToken) {
+  return {
+    getOverview: () => apiFetch<DashboardOverviewDto>("/app/overview", getToken),
+    getSessions: () => apiFetch<SessionHistoryItem[]>("/app/sessions", getToken),
+    getSessionRaids: (sessionId: string) =>
+      apiFetch<{ raids: ActiveSessionRaidDto[] }>(
+        `/app/sessions/${sessionId}/raids`,
+        getToken
+      ),
+    getActiveSession: () =>
+      apiFetch<{ activeSession: ActiveSessionDto | null }>("/app/session/active", getToken),
+    endSession: () =>
+      apiFetch<{ endedSession: SessionHistoryItem | null }>("/app/session/end", getToken, {
+        method: "POST",
+      }),
+    getUploads: () => apiFetch<UploadJobDto[]>("/app/uploads", getToken),
+    createUpload: (input: { filename: string; imageBase64: string }) =>
+      apiFetch<{
+        job: UploadJobDto
+        autoConfirmed: boolean
+        raidId?: string
+        analysis: UploadAnalysisDto
+      }>("/app/uploads/manual", getToken, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    confirmUpload: (
+      uploadId: string,
+      input: {
+        stashValue: number
+        raidMode: "operations" | "warfare"
+        extracted: boolean
+        loadoutCost: number
+        consumablesCost: number
+        insuranceCost: number
+        forceConfirm?: boolean
+      }
+    ) =>
+      apiFetch<{ job: UploadJobDto; raidId: string; warning?: UploadConfirmWarningDto }>(
+        `/app/uploads/${uploadId}/confirm`,
+        getToken,
+        {
+          method: "POST",
+          body: JSON.stringify(input),
+        }
+      ),
+    getLeaderboard: () =>
+      apiFetch<{ period: string; entries: LeaderboardEntryDto[] }>(
+        "/leaderboard?period=all_time",
+        getToken
+      ),
+  }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE "manual_upload_jobs" ADD COLUMN "raw_image_hash" varchar(64) NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "manual_upload_jobs_user_hash_idx" ON "manual_upload_jobs" USING btree ("user_id","raw_image_hash");

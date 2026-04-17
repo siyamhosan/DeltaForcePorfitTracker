@@ -2,9 +2,8 @@ import { UserButton, useUser } from "@clerk/clerk-react"
 import { Link, useLocation } from "react-router-dom"
 import {
   RiDashboardLine,
-  RiLineChartLine,
-  RiHistoryLine,
-  RiSettings4Line,
+  RiImage2Line,
+  RiMedal2Line,
 } from "@remixicon/react"
 import { DashboardShell } from "@workspace/ui/components/dashboard-shell"
 
@@ -13,10 +12,9 @@ interface DashboardLayoutProps {
 }
 
 const navigation = [
-  { name: 'Overview', href: '/app', icon: RiDashboardLine },
-  { name: 'Analytics', href: '/app/analytics', icon: RiLineChartLine },
-  { name: 'Transactions', href: '/app/transactions', icon: RiHistoryLine },
-  { name: 'Settings', href: '/app/settings', icon: RiSettings4Line },
+  { name: "Overview", href: "/app", icon: RiDashboardLine },
+  { name: "Uploads", href: "/app/uploads", icon: RiImage2Line },
+  { name: "Leaderboard", href: "/app/leaderboard", icon: RiMedal2Line },
 ]
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {

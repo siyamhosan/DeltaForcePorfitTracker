@@ -3,6 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/domain": ["packages/domain/src/index.ts"],
+      "@workspace/domain/*": ["packages/domain/src/*"]
+    },
     "skipLibCheck": true,
     "strict": true
   }
