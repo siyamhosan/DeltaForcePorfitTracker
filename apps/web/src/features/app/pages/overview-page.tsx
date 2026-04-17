@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react"
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import {
   RiArrowDownSLine,
   RiBarChartBoxLine,
@@ -228,7 +233,9 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Session Profit
               </p>
-              <p className={`text-sm font-semibold ${profitClassName(activeSession.totalProfit)}`}>
+              <p
+                className={`text-sm font-semibold ${profitClassName(activeSession.totalProfit)}`}
+              >
                 {toMillionValue(activeSession.totalProfit)}
               </p>
             </div>
@@ -241,7 +248,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
             <div className="mt-3">
               {activeSession.raids.length === 0 ? (
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  No confirmed snapshots yet. Confirm an upload to record a raid.
+                  No confirmed snapshots yet. Confirm an upload to record a
+                  raid.
                 </p>
               ) : (
                 <SessionRaidsTable
@@ -329,7 +337,9 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                           className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100"
                           title={endTitle}
                         >
-                          {session.endedAt ? formatTimeAgo(session.endedAt) : "—"}
+                          {session.endedAt
+                            ? formatTimeAgo(session.endedAt)
+                            : "—"}
                         </p>
                       </div>
                       <div>
