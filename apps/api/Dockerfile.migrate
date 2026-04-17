@@ -1,0 +1,23 @@
+# Runs Drizzle migrations (drizzle-kit). Production API image is distroless and cannot run this.
+# Build from repository root:
+#   docker build -f apps/api/Dockerfile.migrate -t porfittracker-api-migrate:latest .
+
+FROM oven/bun:1
+
+WORKDIR /app
+
+COPY package.json bun.lock ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/desktop/package.json ./apps/desktop/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN bun install --frozen-lockfile
+
+COPY packages/domain ./packages/domain
+COPY apps/api ./apps/api
+
+WORKDIR /app/apps/api
+
+ENTRYPOINT ["bun", "run", "db:migrate"]

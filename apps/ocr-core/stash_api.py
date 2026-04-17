@@ -1,5 +1,6 @@
 """HTTP API for stash OCR: POST image → structured stash fields."""
 
+import os
 import time
 from dataclasses import replace
 from typing import Optional
@@ -11,12 +12,21 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from stashOrc import StashApiResult, process_stash_image_bgr
 
+
+def _cors_allow_origins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "*").strip()
+    if raw == "*":
+        return ["*"]
+    return [p.strip() for p in raw.split(",") if p.strip()] or ["*"]
+
+
 app = FastAPI(title="Stash OCR", version="1.0.0")
+_origins = _cors_allow_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -49,7 +59,8 @@ async def analyze(file: UploadFile = File(...)) -> dict:
 def main() -> None:
     import uvicorn
 
-    uvicorn.run("stash_api:app", host="0.0.0.0", port=8765, reload=False)
+    port = int(os.environ.get("PORT", "8765"))
+    uvicorn.run("stash_api:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":

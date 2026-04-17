@@ -29,3 +29,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 .cursor
+
+# Docker Compose bind-mounted data (Postgres, OCR cache, etc.)
+/data
