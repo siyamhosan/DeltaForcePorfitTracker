@@ -17,8 +17,8 @@ from doctr.models import detection_predictor, recognition_predictor
 from doctr.utils.geometry import detach_scores, extract_crops
 
 
-# Total Assets in this HUD: always NNNN.NM (one decimal), seen up to 1000.0M
-STASH_M_VALUE_RE = re.compile(r"^\$?\d{1,4}\.\dM$", re.IGNORECASE)
+# Total Assets in this HUD: NNNN.NM or solid amounts like 34M.
+STASH_M_VALUE_RE = re.compile(r"^\$?\d{1,4}(?:\.\d)?M$", re.IGNORECASE)
 # Fallback when OCR drops leading zeros or uses K/B
 ASSET_VALUE_RELAXED_RE = re.compile(r"^\$?\d{1,3}(?:[.,]\d{1,2})?[KMB]$", re.IGNORECASE)
 

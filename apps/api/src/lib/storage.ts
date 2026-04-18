@@ -37,7 +37,7 @@ function parseStashValueTextToMillions(stashValueText?: string) {
   }
 
   const normalized = stashValueText.trim().toUpperCase()
-  if (!/^\d{1,4}\.\dM$/.test(normalized)) {
+  if (!/^\d{1,4}(?:\.\d)?M$/.test(normalized)) {
     return null
   }
 
