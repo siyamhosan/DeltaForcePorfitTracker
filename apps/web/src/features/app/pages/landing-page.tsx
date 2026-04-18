@@ -14,11 +14,17 @@ import { MarketingPanel } from "@workspace/ui/components/marketing-panel"
 import type { ReactNode } from "react"
 import { Navigate } from "react-router-dom"
 
-export function LandingPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up" }) {
+export function LandingPage({
+  mode = "sign-in",
+}: {
+  mode?: "sign-in" | "sign-up"
+}) {
   const { isLoaded, isSignedIn } = useAuth()
 
   if (!isLoaded) {
-    return <div className="flex min-h-screen w-full items-center justify-center bg-background"></div>
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background"></div>
+    )
   }
 
   if (isSignedIn) {
@@ -33,17 +39,20 @@ export function LandingPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up"
   }> = [
     {
       title: "Stash from screenshots",
-      description: "OCR reads total assets; values shown as millions (e.g. 36.4M).",
+      description:
+        "OCR reads total assets; values shown as millions (e.g. 36.4M).",
       icon: <RiImageLine className="h-5 w-5" />,
     },
     {
       title: "Confirm & warnings",
-      description: "High confidence skips friction; else you confirm. Big jumps vs last stash warn you.",
+      description:
+        "High confidence skips friction; else you confirm. Big jumps vs last stash warn you.",
       icon: <RiCheckDoubleLine className="h-5 w-5" />,
     },
     {
       title: "Dashboard",
-      description: "Charts and summaries for how stash and profit move over time.",
+      description:
+        "Charts and summaries for how stash and profit move over time.",
       icon: <RiBarChartBoxLine className="h-5 w-5" />,
     },
     {
@@ -58,12 +67,14 @@ export function LandingPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up"
     },
     {
       title: "Sessions",
-      description: "Tie raids into runs with profit, duration, and clean closes—shipping soon.",
+      description:
+        "Tie raids into runs with profit, duration, and clean closes—shipping soon.",
       icon: <RiHistoryLine className="h-5 w-5" />,
     },
     {
       title: "Free & open source",
-      description: "Clerk sign-in; self-host the web, API, and OCR with Docker if you want.",
+      description:
+        "Clerk sign-in; self-host the web, API, and OCR with Docker if you want.",
       icon: <RiOpenSourceLine className="h-5 w-5" />,
       wide: true,
     },
@@ -75,7 +86,11 @@ export function LandingPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up"
       subtitle="Stash, profit, leaderboards — Delta Force: Hawk Ops"
       hint={
         <span>
-          (Press <kbd className="rounded-md border bg-muted px-1.5 py-0.5 font-sans">d</kbd> for dark mode)
+          (Press{" "}
+          <kbd className="rounded-md border bg-muted px-1.5 py-0.5 font-sans">
+            d
+          </kbd>{" "}
+          for dark mode)
         </span>
       }
       leftPanel={
@@ -87,17 +102,27 @@ export function LandingPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up"
           footer={
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p>© {new Date().getFullYear()} Delta Force Profit Tracker</p>
-              <span className="flex items-center gap-2 text-zinc-500">
+              <a
+                href="https://github.com/siyamhosan/DeltaForcePorfitTracker"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-zinc-500 hover:underline"
+              >
                 <RiGithubFill className="h-5 w-5 shrink-0" aria-hidden />
                 <span>Open source</span>
-              </span>
+              </a>
             </div>
           }
         />
       }
       authContent={
         mode === "sign-up" ? (
-          <SignUp routing="path" path="/sign-up" signInUrl="/" forceRedirectUrl="/app" />
+          <SignUp
+            routing="path"
+            path="/sign-up"
+            signInUrl="/"
+            forceRedirectUrl="/app"
+          />
         ) : (
           <SignIn
             routing="path"
