@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type {
   UploadAnalysisDto,
   UploadConfirmWarningDto,
@@ -31,11 +31,15 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
   const api = useMemo(() => createApi(getToken), [getToken])
   const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [originalFileSizeBytes, setOriginalFileSizeBytes] = useState<
+    number | null
+  >(null)
   const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(
     null
   )
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isDragActive, setIsDragActive] = useState(false)
+  const [isOptimizingImage, setIsOptimizingImage] = useState(false)
   const [clipboardHint, setClipboardHint] = useState<string | null>(null)
   const [clipboardError, setClipboardError] = useState<string | null>(null)
   const [correctionMode, setCorrectionMode] = useState<
@@ -53,7 +57,9 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
     analysis: UploadAnalysisDto
     autoConfirmed: boolean
   } | null>(null)
-  const [pendingDeleteUploadId, setPendingDeleteUploadId] = useState<string | null>(null)
+  const [pendingDeleteUploadId, setPendingDeleteUploadId] = useState<
+    string | null
+  >(null)
   const [deleteConfirmTextByUpload, setDeleteConfirmTextByUpload] = useState<
     Record<string, string>
   >({})
@@ -71,7 +77,112 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
     })
   }
 
-  function selectImageFile(file: File | null) {
+  function IconBadge({
+    title,
+    className,
+    children,
+  }: {
+    title: string
+    className: string
+    children: ReactNode
+  }) {
+    return (
+      <span
+        title={title}
+        aria-label={title}
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${className}`}
+      >
+        {children}
+      </span>
+    )
+  }
+
+  function formatBytes(bytes: number) {
+    if (bytes < 1024) {
+      return `${bytes} B`
+    }
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+  }
+
+  async function canvasToBlob(canvas: HTMLCanvasElement, quality: number) {
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Failed to compress image."))
+            return
+          }
+          resolve(blob)
+        },
+        "image/jpeg",
+        quality
+      )
+    })
+  }
+
+  async function optimizeImageForUpload(file: File) {
+    const imageUrl = URL.createObjectURL(file)
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error("Failed to load selected image."))
+        img.src = imageUrl
+      })
+
+      const maxDimension = 1920
+      const shouldResize =
+        image.naturalWidth > maxDimension || image.naturalHeight > maxDimension
+      const shouldCompress = file.size > 1.5 * 1024 * 1024 || shouldResize
+
+      if (!shouldCompress) {
+        return file
+      }
+
+      const scale = shouldResize
+        ? Math.min(
+            maxDimension / image.naturalWidth,
+            maxDimension / image.naturalHeight
+          )
+        : 1
+      const width = Math.max(1, Math.round(image.naturalWidth * scale))
+      const height = Math.max(1, Math.round(image.naturalHeight * scale))
+
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) {
+        return file
+      }
+      ctx.drawImage(image, 0, 0, width, height)
+
+      let quality = 0.9
+      let blob = await canvasToBlob(canvas, quality)
+      const targetSizeBytes = 1.1 * 1024 * 1024
+      while (blob.size > targetSizeBytes && quality > 0.65) {
+        quality -= 0.08
+        blob = await canvasToBlob(canvas, quality)
+      }
+
+      if (blob.size >= file.size) {
+        return file
+      }
+
+      const originalNameWithoutExt = file.name.replace(/\.[^.]+$/, "")
+      return new File([blob], `${originalNameWithoutExt}.jpg`, {
+        type: "image/jpeg",
+        lastModified: file.lastModified,
+      })
+    } finally {
+      URL.revokeObjectURL(imageUrl)
+    }
+  }
+
+  async function selectImageFile(file: File | null) {
     if (!file) {
       return
     }
@@ -79,13 +190,41 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       setClipboardError("Only image files are supported.")
       return
     }
+    setIsOptimizingImage(true)
     setClipboardError(null)
-    if (selectedPreviewUrl) {
-      URL.revokeObjectURL(selectedPreviewUrl)
+    try {
+      const optimizedFile = await optimizeImageForUpload(file)
+      if (selectedPreviewUrl) {
+        URL.revokeObjectURL(selectedPreviewUrl)
+      }
+
+      setOriginalFileSizeBytes(file.size)
+      setSelectedFile(optimizedFile)
+      setSelectedPreviewUrl(URL.createObjectURL(optimizedFile))
+
+      if (optimizedFile.size < file.size) {
+        const reducedPct = Math.round(
+          (1 - optimizedFile.size / file.size) * 100
+        )
+        setClipboardHint(
+          `Optimized: ${file.name} (${formatBytes(file.size)} -> ${formatBytes(
+            optimizedFile.size
+          )}, ${reducedPct}% smaller)`
+        )
+      } else {
+        setClipboardHint(
+          `Selected: ${optimizedFile.name} (${formatBytes(optimizedFile.size)})`
+        )
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare selected image."
+      setClipboardError(message)
+    } finally {
+      setIsOptimizingImage(false)
     }
-    setSelectedFile(file)
-    setSelectedPreviewUrl(URL.createObjectURL(file))
-    setClipboardHint(`Selected: ${file.name}`)
   }
 
   const uploadsQuery = useQuery({
@@ -263,7 +402,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
   }, [latestAnalysisPreview, selectedPreviewUrl])
 
   function onUpload() {
-    if (!selectedFile) {
+    if (!selectedFile || isOptimizingImage) {
       return
     }
     uploadMutation.mutate(selectedFile)
@@ -274,6 +413,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       URL.revokeObjectURL(selectedPreviewUrl)
     }
     setSelectedFile(null)
+    setOriginalFileSizeBytes(null)
     setSelectedPreviewUrl(null)
     setClipboardHint(null)
     setClipboardError(null)
@@ -412,6 +552,9 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                     clipboard (<kbd className="rounded border px-1">Ctrl</kbd> +{" "}
                     <kbd className="rounded border px-1">V</kbd>)
                   </p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Large screenshots are auto-optimized before upload.
+                  </p>
                 </div>
               </>
             ) : null}
@@ -419,14 +562,20 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={(event) =>
-                selectImageFile(event.target.files?.[0] ?? null)
-              }
+              onChange={(event) => {
+                void selectImageFile(event.target.files?.[0] ?? null)
+              }}
               className="hidden"
             />
             {clipboardError ? (
               <div className="w-full rounded-lg border border-red-200 bg-red-50 p-2 text-left text-xs text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
                 {clipboardError}
+              </div>
+            ) : null}
+
+            {isOptimizingImage ? (
+              <div className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-left text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                Optimizing screenshot for faster upload...
               </div>
             ) : null}
 
@@ -450,13 +599,16 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button onClick={onUpload} disabled={submitting}>
+                  <Button
+                    onClick={onUpload}
+                    disabled={submitting || isOptimizingImage}
+                  >
                     {submitting ? "Submitting..." : "Submit screenshot"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={clearSelectedFile}
-                    disabled={submitting}
+                    disabled={submitting || isOptimizingImage}
                   >
                     Remove
                   </Button>
@@ -486,14 +638,6 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
             : confidencePct
           const ocrParsedStash =
             ocrAnalysis?.stashValueMillions ?? upload.parsedStashValue
-          const confirmationLabel =
-            upload.confirmationMethod === "auto"
-              ? "Auto-confirmed"
-              : upload.confirmationMethod === "user"
-                ? "Confirmed by user"
-                : upload.status === "processed"
-                  ? "Awaiting confirmation"
-                  : null
 
           const isLatestPreview =
             latestAnalysisPreview && latestAnalysisPreview.jobId === upload.id
@@ -516,23 +660,85 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                     <span className="w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                       {upload.status}
                     </span>
-                    {confirmationLabel ? (
-                      <span
-                        className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${
-                          upload.confirmationMethod === "auto"
-                            ? "bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-200"
-                            : upload.confirmationMethod === "user"
-                              ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200"
-                              : "bg-amber-200/50 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200"
-                        }`}
+                    {upload.status === "processed" ? (
+                      <IconBadge
+                        title="Awaiting confirmation"
+                        className="border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
                       >
-                        {confirmationLabel}
-                      </span>
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+                          />
+                        </svg>
+                      </IconBadge>
+                    ) : null}
+                    {upload.confirmationMethod === "auto" ? (
+                      <IconBadge
+                        title="Auto-confirmed"
+                        className="border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9.75 3a1.5 1.5 0 013 0v1.31a7.5 7.5 0 014.94 4.94H19.5a1.5 1.5 0 010 3h-1.31a7.5 7.5 0 01-4.94 4.94V21a1.5 1.5 0 01-3 0v-1.31a7.5 7.5 0 01-4.94-4.94H3a1.5 1.5 0 010-3h1.31a7.5 7.5 0 014.94-4.94V3z"
+                          />
+                        </svg>
+                      </IconBadge>
+                    ) : null}
+                    {upload.confirmationMethod === "user" ? (
+                      <IconBadge
+                        title="Confirmed by user"
+                        className="border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </IconBadge>
                     ) : null}
                     {upload.editedByUser ? (
-                      <span className="w-fit rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900 dark:bg-violet-900/40 dark:text-violet-200">
-                        Edited by user
-                      </span>
+                      <IconBadge
+                        title="Edited by user"
+                        className="border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-800 dark:bg-violet-900/40 dark:text-violet-200"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16.862 3.487a2.06 2.06 0 112.913 2.913L8.25 17.926 4 19l1.074-4.25L16.862 3.487z"
+                          />
+                        </svg>
+                      </IconBadge>
                     ) : null}
                   </div>
                   <p
@@ -564,9 +770,24 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
               </div>
 
-              <details className="mt-4 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
-                <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  More details (OCR analysis)
+              <details className="mt-4 rounded-lg border border-zinc-200/80 bg-zinc-50/40 p-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700">
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.75 3a1.5 1.5 0 013 0v1.31a7.5 7.5 0 014.94 4.94H19.5a1.5 1.5 0 010 3h-1.31a7.5 7.5 0 01-4.94 4.94V21a1.5 1.5 0 01-3 0v-1.31a7.5 7.5 0 01-4.94-4.94H3a1.5 1.5 0 010-3h1.31a7.5 7.5 0 014.94-4.94V3z"
+                      />
+                    </svg>
+                  </span>
+                  OCR analysis
                 </summary>
                 {isLatestPreview ? (
                   <div className="mt-3 rounded-xl bg-white/50 p-3 dark:bg-black/20">
@@ -592,7 +813,9 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                       Confidence
                     </p>
                     <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {ocrConfidencePct !== null ? `${ocrConfidencePct}%` : "N/A"}
+                      {ocrConfidencePct !== null
+                        ? `${ocrConfidencePct}%`
+                        : "N/A"}
                     </p>
                   </div>
                   <div>
