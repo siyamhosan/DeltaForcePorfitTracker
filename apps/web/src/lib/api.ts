@@ -117,6 +117,14 @@ export function createApi(getToken: GetToken) {
           body: JSON.stringify(input),
         }
       ),
+    deleteUploadSnapshot: (uploadId: string) =>
+      apiFetch<{ deleted: boolean; deletedSessionIds: string[] }>(
+        `/app/uploads/${uploadId}/snapshot`,
+        getToken,
+        {
+          method: "DELETE",
+        }
+      ),
     getLeaderboard: () =>
       apiFetch<{ period: string; entries: LeaderboardEntryDto[] }>(
         "/leaderboard?period=all_time",

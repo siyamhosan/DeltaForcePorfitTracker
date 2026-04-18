@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 
 import { db } from "../db/client"
 import {
@@ -574,5 +574,101 @@ export async function getLeaderboard(period = "all_time"): Promise<LeaderboardEn
 export async function getUploadJobForUser(uploadId: string, userId: number) {
   return db.query.manualUploadJobsTable.findFirst({
     where: and(eq(manualUploadJobsTable.id, uploadId), eq(manualUploadJobsTable.userId, userId)),
+  })
+}
+
+export async function deleteSnapshotForUpload(userId: number, uploadId: string) {
+  return db.transaction(async (tx) => {
+    const snapshots = await tx.query.stashSnapshotsTable.findMany({
+      where: and(eq(stashSnapshotsTable.userId, userId), eq(stashSnapshotsTable.uploadJobId, uploadId)),
+      orderBy: [desc(stashSnapshotsTable.createdAt)],
+    })
+
+    if (snapshots.length === 0) {
+      return {
+        deleted: false,
+        deletedSessionIds: [] as string[],
+      }
+    }
+
+    const relatedRaidIds = Array.from(
+      new Set(
+        snapshots
+          .map((snapshot) => snapshot.raidId)
+          .filter((value): value is string => typeof value === "string")
+      )
+    )
+    const relatedSessionIds = Array.from(
+      new Set(
+        snapshots
+          .map((snapshot) => snapshot.sessionId)
+          .filter((value): value is string => typeof value === "string")
+      )
+    )
+
+    await tx
+      .delete(stashSnapshotsTable)
+      .where(and(eq(stashSnapshotsTable.userId, userId), eq(stashSnapshotsTable.uploadJobId, uploadId)))
+
+    if (relatedRaidIds.length > 0) {
+      await tx
+        .delete(raidsTable)
+        .where(and(eq(raidsTable.userId, userId), inArray(raidsTable.id, relatedRaidIds)))
+    }
+
+    const deletedSessionIds: string[] = []
+    const now = new Date()
+    for (const sessionId of relatedSessionIds) {
+      const existingSession = await tx.query.gameplaySessionsTable.findFirst({
+        where: and(eq(gameplaySessionsTable.id, sessionId), eq(gameplaySessionsTable.userId, userId)),
+      })
+      if (!existingSession) {
+        continue
+      }
+
+      const remainingSnapshots = await tx.query.stashSnapshotsTable.findMany({
+        where: and(eq(stashSnapshotsTable.userId, userId), eq(stashSnapshotsTable.sessionId, sessionId)),
+        orderBy: [asc(stashSnapshotsTable.createdAt)],
+      })
+
+      if (remainingSnapshots.length === 0) {
+        await tx
+          .delete(raidsTable)
+          .where(and(eq(raidsTable.userId, userId), eq(raidsTable.sessionId, sessionId)))
+        await tx
+          .delete(gameplaySessionsTable)
+          .where(and(eq(gameplaySessionsTable.id, sessionId), eq(gameplaySessionsTable.userId, userId)))
+        deletedSessionIds.push(sessionId)
+        continue
+      }
+
+      const firstSnapshot = remainingSnapshots[0]!
+      const latestSnapshot = remainingSnapshots[remainingSnapshots.length - 1]!
+      const initialStash = toMillionNumber(firstSnapshot.stashValue)
+      const currentStash = toMillionNumber(latestSnapshot.stashValue)
+
+      await tx
+        .update(gameplaySessionsTable)
+        .set({
+          initialStashValue: initialStash.toString(),
+          currentStashValue: currentStash.toString(),
+          totalProfit: (currentStash - initialStash).toString(),
+          totalRaids: remainingSnapshots.length,
+          lastActivityAt: latestSnapshot.createdAt,
+          finalStashValue:
+            existingSession.status === "ended" ? currentStash.toString() : null,
+          updatedAt: now,
+        })
+        .where(and(eq(gameplaySessionsTable.id, sessionId), eq(gameplaySessionsTable.userId, userId)))
+    }
+
+    await tx
+      .delete(manualUploadJobsTable)
+      .where(and(eq(manualUploadJobsTable.id, uploadId), eq(manualUploadJobsTable.userId, userId)))
+
+    return {
+      deleted: true,
+      deletedSessionIds,
+    }
   })
 }

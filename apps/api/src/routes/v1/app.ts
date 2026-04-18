@@ -13,6 +13,7 @@ import {
 } from "../../lib/auth"
 import { analyzeUploadWithExternalSystem, sha256ForBase64Image } from "../../lib/storage"
 import {
+  deleteSnapshotForUpload,
   ensureUserByClerkId,
   endActiveSession,
   getActiveSession,
@@ -410,6 +411,31 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
     await rebuildAllTimeLeaderboardForUser(user.id)
 
     return { job: toUploadJobDto(updatedJob), raidId }
+  })
+  .delete("/uploads/:uploadId/snapshot", async ({ authContext, params, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    const user = currentAuth.localUser
+
+    const uploadJob = await getUploadJobForUser(params.uploadId, user.id)
+    if (!uploadJob) {
+      set.status = 404
+      return { error: "Upload job not found" }
+    }
+
+    const result = await deleteSnapshotForUpload(user.id, params.uploadId)
+    if (!result.deleted) {
+      set.status = 409
+      return { error: "No snapshot found for this upload." }
+    }
+
+    await rebuildAllTimeLeaderboardForUser(user.id)
+    return {
+      deleted: true,
+      deletedSessionIds: result.deletedSessionIds,
+    }
   })
   .get("/uploads", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)

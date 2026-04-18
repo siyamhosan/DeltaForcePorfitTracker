@@ -109,17 +109,6 @@ export const stashSnapshotsTable = pgTable("stash_snapshots", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 })
 
-export const extractedItemsTable = pgTable("extracted_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  raidId: uuid("raid_id")
-    .references(() => raidsTable.id, { onDelete: "cascade" })
-    .notNull(),
-  itemName: varchar("item_name", { length: 255 }).notNull(),
-  quantity: integer("quantity").notNull().default(1),
-  marketValue: integer("market_value").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-})
-
 export const leaderboardEntriesTable = pgTable(
   "leaderboard_entries",
   {

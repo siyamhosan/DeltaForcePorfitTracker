@@ -6,6 +6,15 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RiImageLine, RiUploadCloud2Line } from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 
 import { ApiError, createApi } from "@/lib/api"
 import { AnalysisCanvasPreview } from "../components/analysis-canvas-preview"
@@ -43,6 +52,10 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
     analysis: UploadAnalysisDto
     autoConfirmed: boolean
   } | null>(null)
+  const [pendingDeleteUploadId, setPendingDeleteUploadId] = useState<string | null>(null)
+  const [deleteConfirmTextByUpload, setDeleteConfirmTextByUpload] = useState<
+    Record<string, string>
+  >({})
 
   async function fileToBase64(file: File) {
     return new Promise<string>((resolve, reject) => {
@@ -174,8 +187,29 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       }
     },
   })
+  const deleteSnapshotMutation = useMutation({
+    mutationFn: (uploadId: string) => api.deleteUploadSnapshot(uploadId),
+    onSuccess: async () => {
+      setPendingDeleteUploadId(null)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["app", "uploads"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "active"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "reopenable"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["app", "leaderboard"] }),
+      ])
+    },
+  })
 
-  const submitting = uploadMutation.isPending || confirmMutation.isPending
+  const submitting =
+    uploadMutation.isPending ||
+    confirmMutation.isPending ||
+    deleteSnapshotMutation.isPending
   const error =
     uploadsQuery.error instanceof Error
       ? uploadsQuery.error.message
@@ -261,6 +295,31 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       return
     }
     confirmMutation.mutate({ uploadId, stashValue: parsed, forceConfirm })
+  }
+
+  function startDeleteConfirmation(uploadId: string) {
+    setPendingDeleteUploadId(uploadId)
+    setDeleteConfirmTextByUpload((current) => ({
+      ...current,
+      [uploadId]: "",
+    }))
+  }
+
+  function cancelDeleteConfirmation() {
+    setPendingDeleteUploadId(null)
+    deleteSnapshotMutation.reset()
+  }
+
+  function confirmDeleteSnapshot(uploadId: string) {
+    deleteSnapshotMutation.mutate(uploadId)
+  }
+
+  function onDeleteDialogOpenChange(uploadId: string, open: boolean) {
+    if (open) {
+      startDeleteConfirmation(uploadId)
+      return
+    }
+    cancelDeleteConfirmation()
   }
 
   return (
@@ -688,31 +747,103 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                   </Button>
                 </div>
               ) : upload.status === "confirmed" ? (
-                <div className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
-                    <svg
-                      className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                <div className="mt-5 space-y-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                        <svg
+                          className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-emerald-800 dark:text-emerald-400">
+                          Confirmed Stash
+                        </p>
+                        <p className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
+                          {upload.confirmedStashValue !== null
+                            ? toMillionValue(upload.confirmedStashValue)
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <Dialog
+                      open={pendingDeleteUploadId === upload.id}
+                      onOpenChange={(open) =>
+                        onDeleteDialogOpenChange(upload.id, open)
+                      }
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-emerald-800 dark:text-emerald-400">
-                      Confirmed Stash
-                    </p>
-                    <p className="text-sm font-bold text-emerald-900 dark:text-emerald-300">
-                      {upload.confirmedStashValue !== null
-                        ? toMillionValue(upload.confirmedStashValue)
-                        : "N/A"}
-                    </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startDeleteConfirmation(upload.id)}
+                        disabled={submitting}
+                        className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30"
+                      >
+                        Delete Snapshot
+                      </Button>
+                      <DialogContent showCloseButton={false}>
+                        <DialogHeader>
+                          <DialogTitle>Confirm Snapshot Deletion</DialogTitle>
+                          <DialogDescription>
+                            This permanently deletes this snapshot. If this is
+                            the last snapshot in its session, that session is
+                            deleted too. Type <strong>DELETE</strong> to
+                            continue.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <input
+                          type="text"
+                          value={deleteConfirmTextByUpload[upload.id] ?? ""}
+                          onChange={(event) =>
+                            setDeleteConfirmTextByUpload((current) => ({
+                              ...current,
+                              [upload.id]: event.target.value.toUpperCase(),
+                            }))
+                          }
+                          placeholder="Type DELETE"
+                          className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400"
+                        />
+                        {deleteSnapshotMutation.error instanceof Error ? (
+                          <p className="text-xs text-red-600 dark:text-red-400">
+                            {deleteSnapshotMutation.error.message}
+                          </p>
+                        ) : null}
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button
+                              variant="outline"
+                              onClick={cancelDeleteConfirmation}
+                              disabled={deleteSnapshotMutation.isPending}
+                            >
+                              Cancel
+                            </Button>
+                          </DialogClose>
+                          <Button
+                            onClick={() => confirmDeleteSnapshot(upload.id)}
+                            disabled={
+                              deleteSnapshotMutation.isPending ||
+                              (deleteConfirmTextByUpload[upload.id] ?? "") !==
+                                "DELETE"
+                            }
+                            className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+                          >
+                            {deleteSnapshotMutation.isPending
+                              ? "Deleting..."
+                              : "Yes, Delete"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               ) : null}
