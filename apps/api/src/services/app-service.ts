@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
 
 import { db } from "../db/client"
 import {
@@ -14,12 +14,14 @@ import type {
   ActiveSessionRaidDto,
   DashboardOverviewDto,
   LeaderboardEntryDto,
+  ReopenableSessionDto,
   SessionHistoryItem,
   UploadAnalysisDto,
   UploadJobDto,
 } from "@workspace/domain"
 
-const SESSION_IDLE_TIMEOUT_MS = 1000 * 60 * 45
+const SESSION_IDLE_TIMEOUT_MS = 1000 * 60 * 60 * 4
+const SESSION_REOPEN_WINDOW_MS = 1000 * 60 * 60
 
 function toMillionNumber(value: string | number | null | undefined) {
   if (typeof value === "number") {
@@ -299,6 +301,21 @@ export async function getActiveSession(userId: number): Promise<ActiveSessionDto
     return null
   }
 
+  const now = new Date()
+  const idleForMs = now.getTime() - active.lastActivityAt.getTime()
+  if (idleForMs > SESSION_IDLE_TIMEOUT_MS) {
+    await db
+      .update(gameplaySessionsTable)
+      .set({
+        status: "ended",
+        endedAt: active.lastActivityAt,
+        finalStashValue: toMillionNumber(active.currentStashValue).toString(),
+        updatedAt: now,
+      })
+      .where(eq(gameplaySessionsTable.id, active.id))
+    return null
+  }
+
   const raids = await loadRaidsForSessionId(userId, active.id)
 
   return {
@@ -342,6 +359,87 @@ export async function endActiveSession(userId: number, endedAt = new Date()) {
   return updated
 }
 
+function isManualSessionEnd(row: typeof gameplaySessionsTable.$inferSelect) {
+  if (!row.endedAt) {
+    return false
+  }
+  return row.endedAt.getTime() > row.lastActivityAt.getTime()
+}
+
+function toReopenableSessionDto(
+  row: typeof gameplaySessionsTable.$inferSelect,
+  now: Date
+): ReopenableSessionDto | null {
+  if (!row.endedAt || !isManualSessionEnd(row)) {
+    return null
+  }
+
+  const remainingMs = SESSION_REOPEN_WINDOW_MS - (now.getTime() - row.endedAt.getTime())
+  if (remainingMs <= 0) {
+    return null
+  }
+
+  return {
+    session: toSessionHistoryItem(row),
+    expiresAt: new Date(row.endedAt.getTime() + SESSION_REOPEN_WINDOW_MS).toISOString(),
+    remainingSeconds: Math.floor(remainingMs / 1000),
+  }
+}
+
+async function getMostRecentEndedSession(userId: number) {
+  return db.query.gameplaySessionsTable.findFirst({
+    where: and(
+      eq(gameplaySessionsTable.userId, userId),
+      eq(gameplaySessionsTable.status, "ended"),
+      isNotNull(gameplaySessionsTable.endedAt)
+    ),
+    orderBy: [desc(gameplaySessionsTable.endedAt), desc(gameplaySessionsTable.startedAt)],
+  })
+}
+
+export async function getReopenableLastSession(
+  userId: number,
+  now = new Date()
+): Promise<ReopenableSessionDto | null> {
+  const active = await db.query.gameplaySessionsTable.findFirst({
+    where: and(eq(gameplaySessionsTable.userId, userId), eq(gameplaySessionsTable.status, "active")),
+  })
+  if (active) {
+    return null
+  }
+
+  const recentEnded = await getMostRecentEndedSession(userId)
+  if (!recentEnded) {
+    return null
+  }
+
+  return toReopenableSessionDto(recentEnded, now)
+}
+
+export async function reopenLastSession(
+  userId: number,
+  reopenedAt = new Date()
+): Promise<typeof gameplaySessionsTable.$inferSelect | null> {
+  const reopenable = await getReopenableLastSession(userId, reopenedAt)
+  if (!reopenable) {
+    return null
+  }
+
+  const [reopened] = await db
+    .update(gameplaySessionsTable)
+    .set({
+      status: "active",
+      endedAt: null,
+      finalStashValue: null,
+      lastActivityAt: reopenedAt,
+      updatedAt: reopenedAt,
+    })
+    .where(eq(gameplaySessionsTable.id, reopenable.session.id))
+    .returning()
+
+  return reopened
+}
+
 export async function resolveSessionForSnapshot(
   userId: number,
   stashValue: number,
@@ -379,7 +477,7 @@ export async function resolveSessionForSnapshot(
       .update(gameplaySessionsTable)
       .set({
         status: "ended",
-        endedAt: confirmedAt,
+        endedAt: active.lastActivityAt,
         finalStashValue: toMillionNumber(active.currentStashValue).toString(),
         updatedAt: confirmedAt,
       })

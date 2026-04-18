@@ -17,9 +17,11 @@ import {
   endActiveSession,
   getActiveSession,
   getOverview,
+  getReopenableLastSession,
   getSessionHistory,
   getSessionRaidsForUser,
   getUploadJobForUser,
+  reopenLastSession,
   rebuildAllTimeLeaderboardForUser,
   resolveSessionForSnapshot,
   toSessionHistoryItem,
@@ -210,6 +212,26 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
     const user = currentAuth.localUser
     const endedSession = await endActiveSession(user.id)
     return { endedSession: endedSession ? toSessionHistoryItem(endedSession) : null }
+  })
+  .get("/session/reopen-last", async ({ authContext, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+
+    const user = currentAuth.localUser
+    const reopenableSession = await getReopenableLastSession(user.id)
+    return { reopenableSession }
+  })
+  .post("/session/reopen-last", async ({ authContext, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+
+    const user = currentAuth.localUser
+    const reopenedSession = await reopenLastSession(user.id)
+    return { reopenedSession: reopenedSession ? toSessionHistoryItem(reopenedSession) : null }
   })
   .post("/uploads/manual", async ({ authContext, body, set, request }) => {
     try {

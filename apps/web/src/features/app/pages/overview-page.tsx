@@ -58,12 +58,33 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
     queryFn: () => api.getActiveSession(),
     refetchInterval: 10_000,
   })
+  const reopenableSessionQuery = useQuery({
+    queryKey: ["app", "session", "reopenable"],
+    queryFn: () => api.getReopenableLastSession(),
+    refetchInterval: 10_000,
+  })
   const endSessionMutation = useMutation({
     mutationFn: () => api.endSession(),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["app", "session", "active"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "session"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
+      ])
+    },
+  })
+  const reopenSessionMutation = useMutation({
+    mutationFn: () => api.reopenLastSession(),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "active"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "reopenable"],
         }),
         queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
         queryClient.invalidateQueries({ queryKey: ["app", "session"] }),
@@ -79,10 +100,13 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
         ? sessionsQuery.error.message
         : activeSessionQuery.error instanceof Error
           ? activeSessionQuery.error.message
+          : reopenableSessionQuery.error instanceof Error
+            ? reopenableSessionQuery.error.message
           : null
   const overview = overviewQuery.data
   const sessions = sessionsQuery.data ?? []
   const activeSession = activeSessionQuery.data?.activeSession ?? null
+  const reopenableSession = reopenableSessionQuery.data?.reopenableSession ?? null
 
   const sessionRaidQueries = useQueries({
     queries: sessions.map((session) => ({
@@ -258,6 +282,32 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 />
               )}
             </div>
+          </div>
+        </div>
+      ) : null}
+      {!activeSession && reopenableSession ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Last session ended recently
+              </p>
+              <p
+                className="text-xs text-amber-800/90 dark:text-amber-300/90"
+                title={formatAbsoluteDateTime(reopenableSession.expiresAt)}
+              >
+                Reopen available for about {Math.ceil(reopenableSession.remainingSeconds / 60)} more
+                minute(s).
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => reopenSessionMutation.mutate()}
+              disabled={reopenSessionMutation.isPending}
+              className="border-amber-300 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
+            >
+              {reopenSessionMutation.isPending ? "Reopening..." : "Reopen last session"}
+            </Button>
           </div>
         </div>
       ) : null}

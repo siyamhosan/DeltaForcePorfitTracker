@@ -1,6 +1,7 @@
 import type {
   ActiveSessionDto,
   ActiveSessionRaidDto,
+  ReopenableSessionDto,
   UploadAnalysisDto,
   UploadConfirmWarningDto,
   DashboardOverviewDto,
@@ -72,6 +73,19 @@ export function createApi(getToken: GetToken) {
       apiFetch<{ endedSession: SessionHistoryItem | null }>("/app/session/end", getToken, {
         method: "POST",
       }),
+    getReopenableLastSession: () =>
+      apiFetch<{ reopenableSession: ReopenableSessionDto | null }>(
+        "/app/session/reopen-last",
+        getToken
+      ),
+    reopenLastSession: () =>
+      apiFetch<{ reopenedSession: SessionHistoryItem | null }>(
+        "/app/session/reopen-last",
+        getToken,
+        {
+          method: "POST",
+        }
+      ),
     getUploads: () => apiFetch<UploadJobDto[]>("/app/uploads", getToken),
     createUpload: (input: { filename: string; imageBase64: string }) =>
       apiFetch<{

@@ -107,6 +107,12 @@ export type ActiveSessionDto = {
   raids: ActiveSessionRaidDto[]
 }
 
+export type ReopenableSessionDto = {
+  session: SessionHistoryItem
+  expiresAt: string
+  remainingSeconds: number
+}
+
 export type LeaderboardEntryDto = {
   rank: number
   userId: string
