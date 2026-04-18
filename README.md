@@ -1,52 +1,108 @@
 # Delta Force Profit Tracker
 
-A free, open-source companion for tracking profit and stash-related stats in **Delta Force**, with a modern web dashboard, authenticated API, and optional OCR for analyzing stash screenshots.
+**Free and open source.** A companion app for **Delta Force: Hawk Ops** players who want **stash value**, **profit**, and **performance** tracked over time.
 
-Authentication is handled by [Clerk](https://clerk.com). The UI uses **React**, **Vite**, **Tailwind CSS**, and **shadcn-style** components from the shared `@workspace/ui` package.
+The stack is built around **non-invasive** capture—screenshots plus OCR—rather than reading game memory.
 
-## Repository layout
+---
+
+## Why this project exists
+
+The in-game profile only goes so far. Many players want **longitudinal profit analytics**, **session history**, and **leaderboards** that reflect economic performance—not just one-off match stats. This repo provides a **web app**, **API**, and **optional OCR service** you can run yourself (including via Docker).
+
+---
+
+## What you get today
+
+### Account & experience
+
+- **Sign in / sign up** with [Clerk](https://clerk.com) (social and email flows supported by Clerk’s UI).
+- **Landing page** that explains the product: open source, analytics-forward, security-conscious auth.
+- **Dashboard** tuned for both desktop and mobile (bottom navigation on small screens, streamlined shell).
+
+### Stash value from screenshots
+
+- **Upload stash screenshots** (manual upload, drag-and-drop, clipboard—where the UI supports it): images go to the API, which calls an **external OCR analyzer** (DocTR-based service in `apps/ocr-core`) to read total stash value from the HUD.
+- **Preview & confidence**: when the model finds the “total assets” anchor and confidence is high enough, flows can skip redundant confirmation; otherwise you **confirm or correct** the parsed value.
+- **Safety checks**: large jumps vs your last known stash can trigger a **warning threshold** before anything is committed—reduces fat-finger and mis-OCR mistakes.
+- Values are treated as **millions (M)** in the UI (e.g. `36.4M`); storage uses a compact numeric form where applicable.
+
+### Overview & leaderboards
+
+- **Overview** charts and summaries for your economic trajectory (see app for current metrics).
+- **Leaderboards** to compare progress with the community (implementation evolves with the backend).
+
+### Operations & trust
+
+- **API** with authenticated routes (`/v1/...`), CORS-aware for your deployed web origin.
+- **PostgreSQL** for durable session/upload/leaderboard data (Drizzle migrations).
+- **Production Docker Compose** stack: Postgres, API, static web, and OCR **only on the internal network** (not exposed publicly by default).
+
+---
+
+## Roadmap & upcoming plans
+
+These items come from project planning—**not all are implemented yet**. They guide contributions and issues.
+
+### Session system (core gameplay loop)
+
+The intended model (still being refined in code):
+
+- **Idle / neutral**: no active session until you act or after a period of inactivity.
+- **Start on upload**: first stash screenshot of a run **opens a session** using that stash value as a baseline, while **closing out** the previous session’s final stash delta in the background.
+- **During a session**: further uploads track **profit or loss** from that baseline as you raid.
+- **End anytime**: user ends the session explicitly; track **duration**, **session profit**, **totals**, and rollups for history.
+
+### Deeper analytics
+
+- Richer **raid/session profitability** modeling (extracted value, consumables, insurance, loadout replacement costs) for extraction modes.
+- **Warfare / non-extraction** style metrics where relevant (e.g. combat efficiency), distinct from pure stash economics.
+
+### Capture & platforms
+
+- **`apps/desktop`**: path toward **hotkey-triggered capture** and optional automation (Windows-first reality for many anti-cheat–protected titles)—aligned with “visual telemetry” instead of memory reading.
+- **Resolution-robust OCR**: crop/normalize pipelines that behave across aspect ratios (PC vs mobile screenshots).
+
+### Community & streaming (longer horizon)
+
+- **Global and scoped leaderboards** with fair-play considerations (e.g. bot-heavy matches skewing stats—documented as a design concern).
+- **Streamer-friendly hooks**: live overlays and real-time updates (e.g. WebSocket-friendly, self-hosted where possible).
+- **Community challenges** or private leaderboards for groups/clans.
+
+### Data & ecosystem
+
+- Optional integration with **community or regional APIs** for item pricing and metadata where legal and ToS allow, with clear user trust and consent.
+
+---
+
+## For developers
+
+Monorepo: **Bun** + **Turbo**; web **Vite/React**, API **Elysia** on Bun, DB **PostgreSQL** + **Drizzle**, OCR **FastAPI** + DocTR.
 
 | Path | Role |
 |------|------|
-| `apps/web` | Vite + React SPA: landing (Clerk sign-in/up), dashboard (overview, uploads, leaderboard) |
-| `apps/api` | **Elysia** (Bun) HTTP API, PostgreSQL via **Drizzle ORM**, Clerk-verified routes under `/v1` |
-| `apps/ocr-core` | **FastAPI** + DocTR/PyTorch: `POST /analyze` for image-based stash OCR (internal to deployments) |
-| `apps/desktop` | Desktop app workspace (see `apps/desktop`) |
-| `packages/domain` | Shared TypeScript types/schemas (e.g. Zod DTOs) |
-| `packages/ui` | Shared UI primitives, themes, and styles |
-| `docker-compose.yml` | Production-style stack: Postgres, OCR, API, web |
+| `apps/web` | SPA: landing, dashboard (overview, uploads, leaderboard) |
+| `apps/api` | HTTP API under `/v1`, Clerk, uploads + app routes |
+| `apps/ocr-core` | `POST /analyze` for stash images (CPU Docker image) |
+| `apps/desktop` | Desktop client workspace |
+| `packages/domain` | Shared schemas/types |
+| `packages/ui` | Shared UI components & theme |
 
-Monorepo tooling: **Bun** workspaces, **Turbo** for scripts.
+### Prerequisites
 
-## Prerequisites
+- [Bun](https://bun.sh) (see root `package.json`)
+- Docker + Compose v2 for containerized deploy
 
-- [Bun](https://bun.sh) (see root `packageManager` in `package.json`)
-- For Docker deploy: [Docker](https://docs.docker.com/engine/) with Compose v2
-
-## Local development
-
-Install dependencies at the repo root:
+### Local dev
 
 ```bash
 bun install
-```
-
-Run dev servers (Turbo runs configured `dev` tasks across packages):
-
-```bash
 bun dev
 ```
 
-Typical setup:
+Configure `DATABASE_URL`, `CLERK_SECRET_KEY`, and `OCR_ANALYZER_URL` for the API when testing uploads.
 
-- Web: Vite dev server (see `apps/web/package.json`).
-- API: Bun watch on `apps/api` (set `DATABASE_URL`, `CLERK_SECRET_KEY`, and point `OCR_ANALYZER_URL` at a running OCR service if you use upload analysis).
-
-Shared env patterns live in each app; the API reads `DATABASE_URL`, `CLERK_SECRET_KEY`, `OCR_ANALYZER_URL`, `CORS_ORIGIN`, and `PORT`.
-
-## Production with Docker Compose
-
-Compose project name: **`dfstash`**. Copy `.env.example` to `.env` and adjust values (especially Clerk keys and public URLs).
+### Production (Docker Compose)
 
 ```bash
 cp .env.example .env
@@ -54,40 +110,19 @@ mkdir -p data/ocr-cache data/ocr-debug
 docker compose up -d --build
 ```
 
-- **Web** is published on host port `WEB_PORT` (default **35466**), nginx serving the static Vite build.
-- **API** is published on `API_PORT` (default **35467**), mapping to port 3000 in the container.
-- **Postgres** uses the named volume `postgres_data` (avoids host UID issues with bind mounts).
-- **OCR** has **no** published ports; only the API reaches it at `http://ocr:8765` inside the network.
+- Published ports: `WEB_PORT` (default **35466**), `API_PORT` (default **35467**).
+- Postgres uses the `postgres_data` **named volume** (avoids bind-mount UID issues).
+- OCR is internal-only; API calls it at `http://ocr:8765` inside the compose network.
 
-`VITE_API_URL` must be the **browser-visible** API base URL including `/v1` (e.g. `https://your-api.example.com/v1`). `CORS_ORIGIN` should list your web origin (comma-separated if needed).
-
-### Database migrations
-
-After Postgres is healthy:
+**Migrations** (after Postgres is healthy):
 
 ```bash
 docker compose --profile migrate run --rm migrate
-```
-
-Or from the repo root:
-
-```bash
+# or
 bun run compose:migrate
 ```
 
-This runs Drizzle migrations from `apps/api` using `apps/api/Dockerfile.migrate` (the production API image is a compiled binary and does not include `drizzle-kit`).
-
-### OCR data on disk
-
-- `./data/ocr-cache` → model/Hugging Face cache inside the OCR container.
-- `./data/ocr-debug` → optional debug output from stash OCR (`STASH_API_DEBUG`).
-
-If the container cannot write, fix ownership (container user is UID **1000**):  
-`sudo chown -R 1000:1000 data/ocr-cache data/ocr-debug`
-
-## Building without Compose
-
-Dockerfiles expect build context at the **repository root**:
+### Build images without Compose
 
 ```bash
 docker build -f apps/web/Dockerfile -t profittracker-web .
@@ -95,19 +130,17 @@ docker build -f apps/api/Dockerfile -t profittracker-api .
 docker build -f apps/ocr-core/Dockerfile -t profittracker-ocr .
 ```
 
-Pass `VITE_*` build args for the web image as in `docker-compose.yml`.
+### API surface (short)
 
-## API surface
+- `GET /v1/` — public service metadata.
+- Authenticated routes under `/v1/app/...` with `Authorization: Bearer <Clerk token>`.
 
-- Public: `GET /v1/` — service metadata.
-- Authenticated routes use Clerk (`Authorization: Bearer <token>`) and live under the versioned API (see `apps/api/src/routes`).
+### Tech stack summary
 
-## Tech stack (summary)
-
-- **Frontend:** React 19, React Router, TanStack Query, Clerk React, Vite 7  
-- **Backend:** Elysia, Drizzle ORM, `pg`, Clerk backend / `elysia-clerk`  
-- **OCR:** FastAPI, Uvicorn, python-doctr, PyTorch (CPU in Docker), OpenCV  
+- **Frontend:** React 19, React Router, TanStack Query, Clerk React, Vite 7, Tailwind/shadcn-style UI.
+- **Backend:** Elysia, Drizzle, `pg`, Clerk.
+- **OCR:** FastAPI, Uvicorn, python-doctr, PyTorch (CPU in Docker), OpenCV.
 
 ---
 
-This project was initially scoped as a **Delta Force profit tracker** with Clerk auth and a split landing/dashboard experience; the architecture above reflects the current monorepo and deployment shape.
+Contributions welcome: issues and PRs for roadmap items, UX around uploads/sessions, and docs. Licensed as open source once a `LICENSE` file is added to the repo.

@@ -4,6 +4,8 @@ export type MarketingFeature = {
   title: string
   description: string
   icon: ReactNode
+  /** Widen card to full grid width (e.g. last row) */
+  wide?: boolean
 }
 
 type MarketingPanelProps = {
@@ -24,7 +26,7 @@ export function MarketingPanel({
   logoText = "Δ",
 }: MarketingPanelProps) {
   return (
-    <div className="hidden lg:flex w-1/2 flex-col justify-between border-r bg-zinc-950 p-12 text-zinc-50 relative overflow-hidden">
+    <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r bg-zinc-950 p-8 text-zinc-50 lg:flex xl:p-10">
       <div className="absolute inset-0 bg-zinc-900/20" />
       <div
         className="absolute inset-0 opacity-10 pointer-events-none"
@@ -36,30 +38,33 @@ export function MarketingPanel({
       />
 
       <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-16">
+        <div className="mb-8 flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-950 font-bold text-xl">
             {logoText}
           </div>
           <span className="text-xl font-bold tracking-tight">{productName}</span>
         </div>
 
-        <div className="max-w-md space-y-12">
+        <div className="flex w-full flex-col gap-6">
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight mb-4">{headline}</h2>
-            <p className="text-zinc-400 text-lg leading-relaxed">{description}</p>
+            <h2 className="mb-2 text-2xl font-semibold tracking-tight lg:text-3xl">{headline}</h2>
+            <p className="text-sm leading-relaxed text-zinc-400 lg:text-base">{description}</p>
           </div>
 
-          <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-3">
             {features.map((feature) => (
-              <div key={feature.title} className="flex items-start gap-4">
-                <div className="p-2 rounded-lg bg-zinc-800 text-zinc-300 shrink-0">
-                  {feature.icon}
-                </div>
-                <div>
-                  <h3 className="font-medium text-zinc-100">{feature.title}</h3>
-                  <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-                    {feature.description}
-                  </p>
+              <div
+                key={feature.title}
+                className={`rounded-xl border border-zinc-800/90 bg-zinc-900/35 p-4 ${feature.wide ? "col-span-2" : ""}`}
+              >
+                <div className="flex gap-3">
+                  <div className="shrink-0 rounded-lg bg-zinc-800 p-2 text-zinc-300 [&_svg]:h-5 [&_svg]:w-5">
+                    {feature.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium leading-snug text-zinc-100">{feature.title}</h3>
+                    <p className="mt-1 text-xs leading-snug text-zinc-500">{feature.description}</p>
+                  </div>
                 </div>
               </div>
             ))}
