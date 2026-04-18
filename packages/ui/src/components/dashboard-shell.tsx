@@ -40,7 +40,9 @@ export function DashboardShell({
             </div>
             <nav className="mt-2 flex-1 space-y-1 bg-white dark:bg-zinc-950 px-3">
               {navItems.map((item) => {
-                const isCurrent = currentPath === item.href
+                const isCurrent =
+                  currentPath === item.href ||
+                  (item.href !== "/app" && currentPath.startsWith(`${item.href}/`))
                 const content = (
                   <>
                     <item.icon
@@ -94,7 +96,9 @@ export function DashboardShell({
             style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
           >
             {navItems.map((item) => {
-              const isCurrent = currentPath === item.href
+              const isCurrent =
+                currentPath === item.href ||
+                (item.href !== "/app" && currentPath.startsWith(`${item.href}/`))
               const content = (
                 <>
                   <item.icon

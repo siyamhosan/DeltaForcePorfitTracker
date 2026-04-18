@@ -4,6 +4,8 @@ import { useAuth } from "@clerk/clerk-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { LeaderboardPage } from "./leaderboard-page"
 import { OverviewPage } from "./overview-page"
+import { SessionDetailPage } from "./session-detail-page"
+import { SessionsPage } from "./sessions-page"
 import { UploadsPage } from "./uploads-page"
 
 export function DashboardPage() {
@@ -21,6 +23,8 @@ export function DashboardPage() {
     <DashboardLayout>
       <Routes>
         <Route path="/" element={<OverviewPage getToken={getToken} />} />
+        <Route path="/sessions" element={<SessionsPage getToken={getToken} />} />
+        <Route path="/sessions/:sessionId" element={<SessionDetailPage getToken={getToken} />} />
         <Route path="/uploads" element={<UploadsPage getToken={getToken} />} />
         <Route path="/leaderboard" element={<LeaderboardPage getToken={getToken} />} />
         <Route path="*" element={<Navigate to="/app" replace />} />

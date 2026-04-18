@@ -1,6 +1,7 @@
 import type {
   ActiveSessionDto,
   ActiveSessionRaidDto,
+  PaginatedSessionsDto,
   ReopenableSessionDto,
   UploadAnalysisDto,
   UploadConfirmWarningDto,
@@ -62,6 +63,13 @@ export function createApi(getToken: GetToken) {
   return {
     getOverview: () => apiFetch<DashboardOverviewDto>("/app/overview", getToken),
     getSessions: () => apiFetch<SessionHistoryItem[]>("/app/sessions", getToken),
+    getSessionsPaginated: (page: number, pageSize = 20) =>
+      apiFetch<PaginatedSessionsDto>(
+        `/app/sessions/paginated?page=${page}&pageSize=${pageSize}`,
+        getToken
+      ),
+    getSessionById: (sessionId: string) =>
+      apiFetch<{ session: SessionHistoryItem }>(`/app/sessions/${sessionId}`, getToken),
     getSessionRaids: (sessionId: string) =>
       apiFetch<{ raids: ActiveSessionRaidDto[] }>(
         `/app/sessions/${sessionId}/raids`,

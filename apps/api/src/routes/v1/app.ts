@@ -1,7 +1,7 @@
 import { Elysia } from "elysia"
 import { confirmUploadSchema, createUploadSchema, type UploadConfirmWarningDto } from "@workspace/domain"
 import { clerkPlugin } from "elysia-clerk"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { db } from "../../db/client"
@@ -18,8 +18,10 @@ import {
   endActiveSession,
   getActiveSession,
   getOverview,
+  getSessionByIdForUser,
   getReopenableLastSession,
   getSessionHistory,
+  getSessionHistoryPaginated,
   getSessionRaidsForUser,
   getUploadJobForUser,
   reopenLastSession,
@@ -181,6 +183,16 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
     const user = currentAuth.localUser
     return getSessionHistory(user.id)
   })
+  .get("/sessions/paginated", async ({ authContext, set, query }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    const pageRaw = Number(query.page ?? 1)
+    const pageSizeRaw = Number(query.pageSize ?? 20)
+    const user = currentAuth.localUser
+    return getSessionHistoryPaginated(user.id, pageRaw, pageSizeRaw)
+  })
   .get("/sessions/:sessionId/raids", async ({ authContext, set, params }) => {
     const currentAuth = requireAuthContext(authContext, set)
     if (!currentAuth) {
@@ -193,6 +205,19 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       return { error: "Session not found" }
     }
     return { raids }
+  })
+  .get("/sessions/:sessionId", async ({ authContext, set, params }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    const user = currentAuth.localUser
+    const session = await getSessionByIdForUser(user.id, params.sessionId)
+    if (!session) {
+      set.status = 404
+      return { error: "Session not found" }
+    }
+    return { session }
   })
   .get("/session/active", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)
@@ -448,6 +473,37 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       orderBy: (table, { desc }) => [desc(table.createdAt)],
       limit: 20,
     })
+    const jobIds = jobs.map((job) => job.id)
+    const snapshotRows =
+      jobIds.length === 0
+        ? []
+        : await db.query.stashSnapshotsTable.findMany({
+            where: and(
+              eq(stashSnapshotsTable.userId, user.id),
+              inArray(stashSnapshotsTable.uploadJobId, jobIds)
+            ),
+            orderBy: [desc(stashSnapshotsTable.createdAt)],
+          })
+    const firstByUploadId = new Map<
+      string,
+      { sessionId: string | null; raidId: string | null }
+    >()
+    for (const snapshot of snapshotRows) {
+      if (!snapshot.uploadJobId || firstByUploadId.has(snapshot.uploadJobId)) {
+        continue
+      }
+      firstByUploadId.set(snapshot.uploadJobId, {
+        sessionId: snapshot.sessionId,
+        raidId: snapshot.raidId,
+      })
+    }
 
-    return jobs.map(toUploadJobDto)
+    return jobs.map((job) => {
+      const linked = firstByUploadId.get(job.id)
+      return {
+        ...toUploadJobDto(job),
+        sessionId: linked?.sessionId ?? null,
+        raidId: linked?.raidId ?? null,
+      }
+    })
   })

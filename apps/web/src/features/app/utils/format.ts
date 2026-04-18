@@ -7,6 +7,10 @@ export function formatAbsoluteDateTime(isoOrDate: string | Date) {
   return date.toLocaleString()
 }
 
+export function formatAbsoluteWithTimeAgo(isoOrDate: string | Date) {
+  return `${formatAbsoluteDateTime(isoOrDate)} (${formatTimeAgo(isoOrDate)})`
+}
+
 /** Relative time in the past, e.g. "just now", "5 minutes ago", "2 days ago". */
 export function formatTimeAgo(isoOrDate: string | Date) {
   const date = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate
@@ -75,6 +79,16 @@ export function formatDuration(seconds: number) {
   return [hours, minutes, remainingSeconds]
     .map((value) => String(value).padStart(2, "0"))
     .join(":")
+}
+
+export function formatProfitPerHour(totalProfit: number, durationSeconds: number) {
+  if (durationSeconds <= 0) {
+    return "0.0M/h"
+  }
+  const hours = durationSeconds / 3600
+  const perHour = Math.round((totalProfit / hours) * 10) / 10
+  const sign = perHour > 0 ? "+" : ""
+  return `${sign}${perHour.toFixed(1)}M/h`
 }
 
 export function parseMillionInput(value: string) {

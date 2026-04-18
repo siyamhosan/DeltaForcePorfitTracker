@@ -5,9 +5,10 @@ type StatCardProps = {
   value: string
   icon: ReactNode
   className?: string
+  valueClassName?: string
 }
 
-export function StatCard({ title, value, icon, className }: StatCardProps) {
+export function StatCard({ title, value, icon, className, valueClassName }: StatCardProps) {
   return (
     <div
       className={`rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm ${className ?? ""}`}
@@ -18,7 +19,9 @@ export function StatCard({ title, value, icon, className }: StatCardProps) {
         </div>
         <h3 className="font-medium">{title}</h3>
       </div>
-      <p className="text-3xl font-bold text-zinc-900 dark:text-white">{value}</p>
+      <p className={`text-3xl font-bold ${valueClassName ?? "text-zinc-900 dark:text-white"}`}>
+        {value}
+      </p>
     </div>
   )
 }

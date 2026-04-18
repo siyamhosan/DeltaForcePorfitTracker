@@ -14,6 +14,7 @@ import type {
   ActiveSessionRaidDto,
   DashboardOverviewDto,
   LeaderboardEntryDto,
+  PaginatedSessionsDto,
   ReopenableSessionDto,
   SessionHistoryItem,
   UploadAnalysisDto,
@@ -240,6 +241,41 @@ export async function getSessionHistory(userId: number): Promise<SessionHistoryI
   return rows.map(toSessionHistoryItem)
 }
 
+export async function getSessionHistoryPaginated(
+  userId: number,
+  page = 1,
+  pageSize = 20
+): Promise<PaginatedSessionsDto> {
+  const safePage = Math.max(1, Math.floor(page))
+  const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize)))
+  const offset = (safePage - 1) * safePageSize
+
+  const rows = await db.query.gameplaySessionsTable.findMany({
+    where: eq(gameplaySessionsTable.userId, userId),
+    orderBy: [desc(gameplaySessionsTable.startedAt)],
+    limit: safePageSize,
+    offset,
+  })
+
+  const [summary] = await db
+    .select({
+      count: sql<number>`count(*)`,
+    })
+    .from(gameplaySessionsTable)
+    .where(eq(gameplaySessionsTable.userId, userId))
+
+  const totalItems = summary?.count ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize))
+
+  return {
+    items: rows.map(toSessionHistoryItem),
+    page: safePage,
+    pageSize: safePageSize,
+    totalItems,
+    totalPages,
+  }
+}
+
 async function loadRaidsForSessionId(
   userId: number,
   sessionId: string
@@ -249,6 +285,7 @@ async function loadRaidsForSessionId(
       id: raidsTable.id,
       createdAt: raidsTable.createdAt,
       stashValue: stashSnapshotsTable.stashValue,
+      uploadJobId: stashSnapshotsTable.uploadJobId,
     })
     .from(raidsTable)
     .leftJoin(stashSnapshotsTable, eq(stashSnapshotsTable.raidId, raidsTable.id))
@@ -266,6 +303,7 @@ async function loadRaidsForSessionId(
       id: row.id,
       stashValue: toMillionNumber(row.stashValue),
       createdAt: row.createdAt.toISOString(),
+      uploadJobId: row.uploadJobId,
     })
   }
   return raids
@@ -286,6 +324,22 @@ export async function getSessionRaidsForUser(
     return null
   }
   return loadRaidsForSessionId(userId, sessionId)
+}
+
+export async function getSessionByIdForUser(
+  userId: number,
+  sessionId: string
+): Promise<SessionHistoryItem | null> {
+  const session = await db.query.gameplaySessionsTable.findFirst({
+    where: and(
+      eq(gameplaySessionsTable.id, sessionId),
+      eq(gameplaySessionsTable.userId, userId)
+    ),
+  })
+  if (!session) {
+    return null
+  }
+  return toSessionHistoryItem(session)
 }
 
 export async function getActiveSession(userId: number): Promise<ActiveSessionDto | null> {

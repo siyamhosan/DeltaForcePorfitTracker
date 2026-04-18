@@ -6,6 +6,7 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { RiImageLine, RiUploadCloud2Line } from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
+import { Link } from "react-router-dom"
 import {
   Dialog,
   DialogClose,
@@ -549,69 +550,33 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                       Confirmed {formatTimeAgo(upload.confirmedAt)}
                     </p>
                   ) : null}
+                  {upload.sessionId ? (
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      Session:{" "}
+                      <Link
+                        to={`/app/sessions/${upload.sessionId}`}
+                        className="font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                      >
+                        {upload.sessionId.slice(0, 8)}
+                      </Link>
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              {isLatestPreview ? (
-                <div className="mt-4 rounded-xl bg-white/50 p-4 dark:bg-black/20">
-                  <div className="mb-3">
-                    <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      Analysis Preview
-                    </h3>
+              <details className="mt-4 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  More details (OCR analysis)
+                </summary>
+                {isLatestPreview ? (
+                  <div className="mt-3 rounded-xl bg-white/50 p-3 dark:bg-black/20">
+                    <AnalysisCanvasPreview
+                      imageUrl={latestAnalysisPreview.imageUrl}
+                      analysis={latestAnalysisPreview.analysis}
+                    />
                   </div>
-                  <AnalysisCanvasPreview
-                    imageUrl={latestAnalysisPreview.imageUrl}
-                    analysis={latestAnalysisPreview.analysis}
-                  />
-                  <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        OCR Stash
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {latestAnalysisPreview.analysis.stashValueMillions !==
-                        null
-                          ? toMillionValue(
-                              latestAnalysisPreview.analysis.stashValueMillions
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        Confidence
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {Math.round(
-                          latestAnalysisPreview.analysis.confidence * 100
-                        )}
-                        %
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        Anchor
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {latestAnalysisPreview.analysis.foundTotalAssetsAnchor
-                          ? "Found"
-                          : "Missing"}
-                      </p>
-                    </div>
-                    {latestAnalysisPreview.analysis.stashValueText ? (
-                      <div>
-                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                          Raw Text
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                          {latestAnalysisPreview.analysis.stashValueText}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 grid grid-cols-2 gap-4 rounded-xl border border-zinc-100 bg-zinc-50/50 p-4 sm:grid-cols-4 dark:border-zinc-800/80 dark:bg-zinc-900/30">
+                ) : null}
+                <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div>
                     <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                       OCR Stash
@@ -627,9 +592,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                       Confidence
                     </p>
                     <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {ocrConfidencePct !== null
-                        ? `${ocrConfidencePct}%`
-                        : "N/A"}
+                      {ocrConfidencePct !== null ? `${ocrConfidencePct}%` : "N/A"}
                     </p>
                   </div>
                   <div>
@@ -655,7 +618,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                     </div>
                   ) : null}
                 </div>
-              )}
+              </details>
 
               {upload.status === "processed" ? (
                 <div className="mt-6 space-y-4">

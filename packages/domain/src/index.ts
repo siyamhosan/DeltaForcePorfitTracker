@@ -64,6 +64,8 @@ export type UploadJobDto = {
   confirmedByUser: boolean
   editedByUser: boolean
   confirmedAt: string | null
+  sessionId?: string | null
+  raidId?: string | null
   createdAt: string
 }
 
@@ -92,6 +94,7 @@ export type ActiveSessionRaidDto = {
   id: string
   stashValue: number
   createdAt: string
+  uploadJobId: string | null
 }
 
 export type ActiveSessionDto = {
@@ -111,6 +114,14 @@ export type ReopenableSessionDto = {
   session: SessionHistoryItem
   expiresAt: string
   remainingSeconds: number
+}
+
+export type PaginatedSessionsDto = {
+  items: SessionHistoryItem[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
 }
 
 export type LeaderboardEntryDto = {

@@ -1,18 +1,22 @@
 import type { ActiveSessionRaidDto } from "@workspace/domain"
+import { Button } from "@workspace/ui/components/button"
 
 import {
-  formatAbsoluteDateTime,
+  formatAbsoluteWithTimeAgo,
   formatStashDeltaMillion,
-  formatTimeAgo,
   toMillionValue,
 } from "../utils/format"
 
 export function SessionRaidsTable({
   initialStashValue,
   raids,
+  onDeleteUploadSnapshot,
+  deletingUploadJobId,
 }: {
   initialStashValue: number
   raids: ActiveSessionRaidDto[]
+  onDeleteUploadSnapshot?: (uploadJobId: string) => void
+  deletingUploadJobId?: string | null
 }) {
   if (raids.length === 0) {
     return (
@@ -33,6 +37,7 @@ export function SessionRaidsTable({
             <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-400">
               Profit (vs last)
             </th>
+            <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-400">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -51,15 +56,29 @@ export function SessionRaidsTable({
                 <td className="px-3 py-2 tabular-nums text-zinc-500">{index + 1}</td>
                 <td
                   className="px-3 py-2 text-zinc-700 dark:text-zinc-300"
-                  title={formatAbsoluteDateTime(raid.createdAt)}
                 >
-                  {formatTimeAgo(raid.createdAt)}
+                  {formatAbsoluteWithTimeAgo(raid.createdAt)}
                 </td>
                 <td className="px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100">
                   {toMillionValue(raid.stashValue)}
                 </td>
                 <td className={`px-3 py-2 font-medium tabular-nums ${deltaClass}`}>
                   {formatStashDeltaMillion(delta)}
+                </td>
+                <td className="px-3 py-2">
+                  {raid.uploadJobId && onDeleteUploadSnapshot ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onDeleteUploadSnapshot(raid.uploadJobId!)}
+                      disabled={deletingUploadJobId === raid.uploadJobId}
+                      className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/30"
+                    >
+                      {deletingUploadJobId === raid.uploadJobId ? "Deleting..." : "Delete"}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-zinc-400">-</span>
+                  )}
                 </td>
               </tr>
             )

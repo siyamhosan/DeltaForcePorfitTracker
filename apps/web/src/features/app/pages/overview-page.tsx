@@ -15,15 +15,25 @@ import {
 } from "@remixicon/react"
 import { Link } from "react-router-dom"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import { EmptyStateCard } from "@workspace/ui/components/empty-state-card"
 import { StatCard } from "@workspace/ui/components/stat-card"
 
-import { createApi } from "@/lib/api"
+import { ApiError, createApi } from "@/lib/api"
 import { SessionRaidsTable } from "../components/session-raids-table"
 import type { GetToken } from "../types"
 import {
   formatAbsoluteDateTime,
   formatDuration,
+  formatProfitPerHour,
   formatTimeAgo,
   toMillionValue,
 } from "../utils/format"
@@ -45,6 +55,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
   const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(
     () => new Set()
   )
+  const [pendingDeleteUploadId, setPendingDeleteUploadId] = useState<string | null>(null)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const overviewQuery = useQuery({
     queryKey: ["app", "overview"],
     queryFn: () => api.getOverview(),
@@ -92,6 +104,25 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
       ])
     },
   })
+  const deleteSnapshotMutation = useMutation({
+    mutationFn: (uploadId: string) => api.deleteUploadSnapshot(uploadId),
+    onSuccess: async () => {
+      setPendingDeleteUploadId(null)
+      setDeleteConfirmText("")
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["app", "uploads"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "active"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["app", "session", "reopenable"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["app", "leaderboard"] }),
+      ])
+    },
+  })
 
   const error =
     overviewQuery.error instanceof Error
@@ -102,6 +133,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
           ? activeSessionQuery.error.message
           : reopenableSessionQuery.error instanceof Error
             ? reopenableSessionQuery.error.message
+            : deleteSnapshotMutation.error instanceof ApiError
+              ? deleteSnapshotMutation.error.message
           : null
   const overview = overviewQuery.data
   const sessions = sessionsQuery.data ?? []
@@ -128,6 +161,25 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
     })
   }
 
+  const totalProfit = overview?.totalProfit ?? 0
+  const totalProfitClass =
+    totalProfit > 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : totalProfit < 0
+        ? "text-red-600 dark:text-red-400"
+        : "text-zinc-900 dark:text-white"
+
+  function openDeleteDialog(uploadJobId: string) {
+    setPendingDeleteUploadId(uploadJobId)
+    setDeleteConfirmText("")
+  }
+
+  function closeDeleteDialog() {
+    setPendingDeleteUploadId(null)
+    setDeleteConfirmText("")
+    deleteSnapshotMutation.reset()
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl border border-zinc-200/70 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
@@ -150,6 +202,11 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
               View Leaderboard
             </Button>
           </Link>
+          <Link to="/app/sessions">
+            <Button size="sm" variant="outline">
+              Browse Sessions
+            </Button>
+          </Link>
           <span className="rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
             {sessions.length} sessions tracked
           </span>
@@ -166,6 +223,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
         <StatCard
           title="Total Profit"
           value={toMillionValue(overview?.totalProfit ?? 0)}
+          valueClassName={totalProfitClass}
           icon={<RiBarChartBoxLine className="h-5 w-5" />}
         />
         <StatCard
@@ -228,7 +286,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
             </Button>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Duration
@@ -263,6 +321,19 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 {toMillionValue(activeSession.totalProfit)}
               </p>
             </div>
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Profit / Hour
+              </p>
+              <p
+                className={`text-sm font-semibold ${profitClassName(activeSession.totalProfit)}`}
+              >
+                {formatProfitPerHour(
+                  activeSession.totalProfit,
+                  activeSession.durationSeconds
+                )}
+              </p>
+            </div>
           </div>
 
           <div className="mt-6">
@@ -279,6 +350,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 <SessionRaidsTable
                   initialStashValue={activeSession.initialStashValue}
                   raids={activeSession.raids}
+                  onDeleteUploadSnapshot={openDeleteDialog}
+                  deletingUploadJobId={pendingDeleteUploadId}
                 />
               )}
             </div>
@@ -367,7 +440,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                         aria-hidden
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                       <div>
                         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           Start
@@ -412,6 +485,19 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                          Profit / Hour
+                        </p>
+                        <p
+                          className={`mt-0.5 text-sm font-semibold ${profitClassName(session.totalProfit)}`}
+                        >
+                          {formatProfitPerHour(
+                            session.totalProfit,
+                            session.durationSeconds
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           Raids
                         </p>
                         <p className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -437,6 +523,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                         <SessionRaidsTable
                           initialStashValue={session.initialStashValue}
                           raids={raidQuery?.data?.raids ?? []}
+                          onDeleteUploadSnapshot={openDeleteDialog}
+                          deletingUploadJobId={pendingDeleteUploadId}
                         />
                       )}
                     </div>
@@ -447,6 +535,53 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
           </div>
         </div>
       )}
+      <Dialog
+        open={pendingDeleteUploadId !== null}
+        onOpenChange={(open) => !open && closeDeleteDialog()}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Snapshot</DialogTitle>
+            <DialogDescription>
+              This permanently deletes the selected snapshot. If this is the last snapshot in its
+              session, that session will be deleted too. Type <strong>DELETE</strong> to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(event) => setDeleteConfirmText(event.target.value.toUpperCase())}
+            placeholder="Type DELETE"
+            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400"
+          />
+          {deleteSnapshotMutation.error instanceof Error ? (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              {deleteSnapshotMutation.error.message}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                onClick={closeDeleteDialog}
+                disabled={deleteSnapshotMutation.isPending}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              onClick={() =>
+                pendingDeleteUploadId &&
+                deleteSnapshotMutation.mutate(pendingDeleteUploadId)
+              }
+              disabled={deleteSnapshotMutation.isPending || deleteConfirmText !== "DELETE"}
+              className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+            >
+              {deleteSnapshotMutation.isPending ? "Deleting..." : "Yes, Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
