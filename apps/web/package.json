@@ -5,7 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "seo:sitemap": "node ./scripts/generate-sitemap.mjs",
+    "seo:validate": "node ./scripts/validate-seo.mjs",
+    "seo:prerender": "node ./scripts/prerender-public-routes.mjs",
+    "build": "bun run seo:sitemap && tsc -b && vite build && bun run seo:prerender && bun run seo:sitemap && bun run seo:validate",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
@@ -20,7 +23,8 @@
     "@workspace/ui": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.1"
+    "react-router-dom": "^7.14.1",
+    "web-vitals": "^5.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

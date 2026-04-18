@@ -8,6 +8,7 @@ import { BrowserRouter } from "react-router-dom"
 import "@workspace/ui/globals.css"
 import { AppRoot } from "./app-root"
 import { ThemeProvider, useTheme } from "@/components/theme-provider.tsx"
+import { initWebVitals } from "@/lib/web-vitals"
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 const queryClient = new QueryClient({
@@ -22,6 +23,8 @@ const queryClient = new QueryClient({
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key")
 }
+
+initWebVitals()
 
 function ClerkProviderWithTheme({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme()
