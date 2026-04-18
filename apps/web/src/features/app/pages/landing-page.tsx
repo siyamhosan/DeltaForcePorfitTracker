@@ -17,38 +17,6 @@ import { Link, Navigate } from "react-router-dom"
 import { getRouteSeo } from "@/seo/route-seo"
 import { SeoHead, buildPublicSchemas } from "@/seo/seo-head"
 
-function PublicLandingFallback() {
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center gap-8 px-6 py-16">
-      <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-        Delta Force stash and profit tracking, built for screenshot workflows.
-      </h1>
-      <p className="max-w-3xl text-lg text-zinc-600 dark:text-zinc-300">
-        Upload stash screenshots, parse totals with OCR, and monitor profit trends from one dashboard.
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <Link to="/sign-up" className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
-          Start free
-        </Link>
-        <a
-          href="https://github.com/siyamhosan/DeltaForcePorfitTracker"
-          target="_blank"
-          rel="noreferrer noopener"
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
-        >
-          Open source repository
-        </a>
-      </div>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Explore: <Link to="/features/stash-tracker">stash tracker</Link>,{" "}
-        <Link to="/features/profit-calculator">profit calculator</Link>,{" "}
-        <Link to="/features/ocr-stash-value">OCR stash value</Link>,{" "}
-        <Link to="/self-hosted-game-profit-tracker">self-hosted setup</Link>.
-      </p>
-    </main>
-  )
-}
-
 export function LandingPage({
   mode = "sign-in",
 }: {
@@ -71,7 +39,7 @@ export function LandingPage({
             jsonLd={buildPublicSchemas(pathname)}
           />
         ) : null}
-        <PublicLandingFallback />
+        <div className="flex min-h-screen w-full items-center justify-center bg-background"></div>
       </>
     )
   }
