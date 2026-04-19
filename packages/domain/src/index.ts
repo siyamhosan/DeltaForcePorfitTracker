@@ -15,6 +15,7 @@ export type UploadStatus = z.infer<typeof uploadStatusSchema>
 export const createUploadSchema = z.object({
   filename: z.string().min(1).max(255),
   imageBase64: z.string().min(16),
+  source: z.enum(["manual_upload", "desktop_client"]).optional(),
 })
 export type CreateUploadInput = z.infer<typeof createUploadSchema>
 
@@ -66,6 +67,8 @@ export type UploadJobDto = {
   confirmedAt: string | null
   sessionId?: string | null
   raidId?: string | null
+  source?: "manual_upload" | "desktop_client" | null
+  processingFailureReason?: string | null
   createdAt: string
 }
 
@@ -140,4 +143,26 @@ export type DashboardOverviewDto = {
   latestStashValue: number
   activeSessionProfit: number
   activeSessionDurationSeconds: number
+}
+
+export const createApiKeySchema = z.object({
+  name: z.string().trim().min(2).max(64),
+  type: z.enum(["desktop", "manual"]).default("manual"),
+})
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>
+
+export type ApiKeyDto = {
+  id: string
+  name: string
+  type: "desktop" | "manual"
+  prefix: string
+  createdAt: string
+  updatedAt: string
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
+
+export type ApiKeyWithSecretDto = {
+  key: ApiKeyDto
+  secret: string
 }

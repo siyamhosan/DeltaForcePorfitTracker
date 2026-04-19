@@ -5,12 +5,14 @@ export type LocalUser = typeof usersTable.$inferSelect
 export type AuthContext =
   | {
       isAuthenticated: false
+      authMethod: null
       clerkUserId: null
       sessionId: null
       localUser: null
     }
   | {
       isAuthenticated: true
+      authMethod: "clerk" | "desktop"
       clerkUserId: string
       sessionId: string | null
       localUser: LocalUser
@@ -18,6 +20,7 @@ export type AuthContext =
 
 export const unauthenticatedAuthContext: AuthContext = {
   isAuthenticated: false,
+  authMethod: null,
   clerkUserId: null,
   sessionId: null,
   localUser: null,

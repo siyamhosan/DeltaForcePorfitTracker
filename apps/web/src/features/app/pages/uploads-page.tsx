@@ -796,7 +796,8 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
               </div>
 
-              {upload.status === "processed" ? (
+              {upload.status === "processed" &&
+              upload.source !== "desktop_client" ? (
                 <div className="mt-6 space-y-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-sm font-medium">
@@ -984,6 +985,15 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                       </DialogContent>
                     </Dialog>
                   </div>
+                </div>
+              ) : upload.status === "failed" &&
+                upload.source === "desktop_client" ? (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200">
+                  <p className="font-semibold">Desktop capture failed OCR</p>
+                  <p className="mt-1">
+                    {upload.processingFailureReason ??
+                      "Desktop screenshot could not be parsed. It was marked failed automatically."}
+                  </p>
                 </div>
               ) : null}
 

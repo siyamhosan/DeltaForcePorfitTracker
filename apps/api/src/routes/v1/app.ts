@@ -1,17 +1,38 @@
 import { Elysia } from "elysia"
-import { confirmUploadSchema, createUploadSchema, type UploadConfirmWarningDto } from "@workspace/domain"
+import {
+  confirmUploadSchema,
+  createApiKeySchema,
+  createUploadSchema,
+  type UploadAnalysisDto,
+  type UploadConfirmWarningDto,
+} from "@workspace/domain"
 import { clerkPlugin } from "elysia-clerk"
 import { and, desc, eq, inArray } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { db } from "../../db/client"
-import { manualUploadJobsTable, raidsTable, stashSnapshotsTable } from "../../db/schema"
+import {
+  manualUploadJobsTable,
+  raidsTable,
+  stashSnapshotsTable,
+  usersTable,
+} from "../../db/schema"
 import {
   type AuthContext,
   isAuthenticatedContext,
   unauthenticatedAuthContext,
 } from "../../lib/auth"
-import { analyzeUploadWithExternalSystem, sha256ForBase64Image } from "../../lib/storage"
+import {
+  analyzeUploadWithExternalSystem,
+  sha256ForBase64Image,
+} from "../../lib/storage"
+import {
+  createApiKeyForUser,
+  ensureDesktopApiKeyForUser,
+  listApiKeysForUser,
+  revokeApiKeyForUser,
+  validateApiKey,
+} from "../../services/api-key-service"
 import {
   deleteSnapshotForUpload,
   ensureUserByClerkId,
@@ -42,6 +63,8 @@ function toOneDecimalMillion(value: number) {
 
 type UploadJobParseNotes = {
   analysis?: unknown
+  source?: "manual_upload" | "desktop_client"
+  processingFailureReason?: string
   confirmation?: {
     method: "auto" | "user"
     confirmedByUser: boolean
@@ -77,7 +100,11 @@ async function persistConfirmedSnapshot(params: {
   insuranceCost: number
   confirmedAt: Date
 }) {
-  const session = await resolveSessionForSnapshot(params.userId, params.stashValue, params.confirmedAt)
+  const session = await resolveSessionForSnapshot(
+    params.userId,
+    params.stashValue,
+    params.confirmedAt
+  )
   const [raid] = await db
     .insert(raidsTable)
     .values({
@@ -111,7 +138,9 @@ async function getLatestStashValue(userId: number) {
     where: eq(stashSnapshotsTable.userId, userId),
     orderBy: [desc(stashSnapshotsTable.createdAt)],
   })
-  return lastSnapshot?.stashValue === undefined ? null : toOneDecimalMillion(Number(lastSnapshot.stashValue))
+  return lastSnapshot?.stashValue === undefined
+    ? null
+    : toOneDecimalMillion(Number(lastSnapshot.stashValue))
 }
 
 function requireAuthContext(
@@ -128,7 +157,31 @@ function requireAuthContext(
 
 export const appRoutes = new Elysia({ prefix: "/v1/app" })
   .use(clerkPlugin())
-  .resolve(async ({ auth, clerk }) => {
+  .resolve(async ({ auth, clerk, request }) => {
+    const authHeader = request.headers.get("authorization") ?? ""
+    const bearerToken = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : null
+    if (bearerToken) {
+      const apiKeyRecord = await validateApiKey(bearerToken)
+      if (apiKeyRecord) {
+        const desktopUser = await db.query.usersTable.findFirst({
+          where: eq(usersTable.id, apiKeyRecord.userId),
+        })
+        if (desktopUser) {
+          return {
+            authContext: {
+              isAuthenticated: true as const,
+              authMethod: "desktop" as const,
+              clerkUserId: desktopUser.clerkUserId,
+              sessionId: null,
+              localUser: desktopUser,
+            },
+          }
+        }
+      }
+    }
+
     const { userId, sessionId } = auth()
     if (!userId) {
       return { authContext: unauthenticatedAuthContext }
@@ -143,6 +196,7 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
     return {
       authContext: {
         isAuthenticated: true as const,
+        authMethod: "clerk" as const,
         clerkUserId: userId,
         sessionId: sessionId ?? null,
         localUser,
@@ -166,6 +220,65 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       internalUserId: user.id,
       displayName: user.displayName,
     }
+  })
+  .get("/api-keys", async ({ authContext, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    const keys = await listApiKeysForUser(currentAuth.localUser.id)
+    return { keys }
+  })
+  .post("/api-keys", async ({ authContext, set, body }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    if (currentAuth.authMethod !== "clerk") {
+      set.status = 403
+      return { error: "API keys can only be created from web login." }
+    }
+    const parsed = createApiKeySchema.safeParse(body)
+    if (!parsed.success) {
+      set.status = 400
+      return { error: "Invalid payload" }
+    }
+    const created = await createApiKeyForUser({
+      userId: currentAuth.localUser.id,
+      name: parsed.data.name,
+      type: parsed.data.type,
+    })
+    return created
+  })
+  .post("/desktop/api-key", async ({ authContext, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    if (currentAuth.authMethod !== "clerk") {
+      set.status = 403
+      return { error: "Desktop API key minting requires a browser login." }
+    }
+    return ensureDesktopApiKeyForUser(currentAuth.localUser.id)
+  })
+  .delete("/api-keys/:keyId", async ({ authContext, set, params }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    if (currentAuth.authMethod !== "clerk") {
+      set.status = 403
+      return { error: "API keys can only be managed from web login." }
+    }
+    const revoked = await revokeApiKeyForUser(
+      currentAuth.localUser.id,
+      params.keyId
+    )
+    if (!revoked) {
+      set.status = 404
+      return { error: "API key not found." }
+    }
+    return { revoked: true }
   })
   .get("/overview", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)
@@ -237,7 +350,9 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
 
     const user = currentAuth.localUser
     const endedSession = await endActiveSession(user.id)
-    return { endedSession: endedSession ? toSessionHistoryItem(endedSession) : null }
+    return {
+      endedSession: endedSession ? toSessionHistoryItem(endedSession) : null,
+    }
   })
   .get("/session/reopen-last", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)
@@ -257,7 +372,11 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
 
     const user = currentAuth.localUser
     const reopenedSession = await reopenLastSession(user.id)
-    return { reopenedSession: reopenedSession ? toSessionHistoryItem(reopenedSession) : null }
+    return {
+      reopenedSession: reopenedSession
+        ? toSessionHistoryItem(reopenedSession)
+        : null,
+    }
   })
   .post("/uploads/manual", async ({ authContext, body, set, request }) => {
     try {
@@ -272,6 +391,7 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
         return { error: "Invalid payload" }
       }
       const payload = parsedBody.data
+      const uploadSource = payload.source ?? "manual_upload"
 
       const imageHash = sha256ForBase64Image(payload.imageBase64)
       const existing = await db.query.manualUploadJobsTable.findFirst({
@@ -283,28 +403,67 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
 
       if (existing) {
         set.status = 409
-        return { error: "Duplicate upload detected for this account", job: toUploadJobDto(existing) }
+        return {
+          error: "Duplicate upload detected for this account",
+          job: toUploadJobDto(existing),
+        }
       }
-      const analysis = await analyzeUploadWithExternalSystem(payload.filename, payload.imageBase64)
+      let processingFailureReason: string | null = null
+      let analysis: UploadAnalysisDto
+      try {
+        analysis = await analyzeUploadWithExternalSystem(
+          payload.filename,
+          payload.imageBase64
+        )
+      } catch (processingError) {
+        if (uploadSource !== "desktop_client") {
+          throw processingError
+        }
+        processingFailureReason = "Desktop capture OCR request failed. Marked failed."
+        analysis = {
+          foundTotalAssetsAnchor: false,
+          confidence: 0,
+          stashValueText: null,
+          stashValueMillions: null,
+          timeTakenMs: null,
+          stashValueBoundingBox: null,
+          stashSearchBand: null,
+          debugOutputDir: null,
+        }
+      }
+      if (
+        uploadSource === "desktop_client" &&
+        (!analysis.foundTotalAssetsAnchor || analysis.stashValueMillions === null)
+      ) {
+        processingFailureReason =
+          "Desktop capture OCR could not reliably read stash value. Marked failed."
+      }
 
       const [job] = await db
         .insert(manualUploadJobsTable)
         .values({
           userId: user.id,
-          status: "processed",
+          status: processingFailureReason ? "failed" : "processed",
           rawImagePath: RAW_IMAGE_PATH_NOT_STORED,
           rawImageHash: imageHash,
           parsedStashValue:
-            analysis.stashValueMillions === null ? null : analysis.stashValueMillions.toString(),
+            analysis.stashValueMillions === null
+              ? null
+              : analysis.stashValueMillions.toString(),
           confidence: analysis.confidence.toString(),
           confirmedStashValue: null,
           parseNotes: JSON.stringify({
             analysis,
+            source: uploadSource,
+            ...(processingFailureReason
+              ? { processingFailureReason }
+              : {}),
           } satisfies UploadJobParseNotes),
         })
         .returning()
 
       if (
+        !processingFailureReason &&
         analysis.foundTotalAssetsAnchor &&
         analysis.confidence >= AUTO_CONFIRM_MIN_CONFIDENCE &&
         analysis.stashValueMillions !== null
@@ -340,7 +499,12 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
             } satisfies UploadJobParseNotes),
             updatedAt: confirmedAt,
           })
-          .where(and(eq(manualUploadJobsTable.id, job.id), eq(manualUploadJobsTable.userId, user.id)))
+          .where(
+            and(
+              eq(manualUploadJobsTable.id, job.id),
+              eq(manualUploadJobsTable.userId, user.id)
+            )
+          )
           .returning()
         await rebuildAllTimeLeaderboardForUser(user.id)
         return {
@@ -361,107 +525,129 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       return { error: "Upload processing failed" }
     }
   })
-  .post("/uploads/:uploadId/confirm", async ({ authContext, params, body, set }) => {
-    const currentAuth = requireAuthContext(authContext, set)
-    if (!currentAuth) {
-      return { error: "Unauthorized" }
-    }
-    const user = currentAuth.localUser
-    const uploadJob = await getUploadJobForUser(params.uploadId, user.id)
-    if (!uploadJob) {
-      set.status = 404
-      return { error: "Upload job not found" }
-    }
-
-    const parsedBody = confirmUploadSchema.safeParse(body)
-    if (!parsedBody.success) {
-      set.status = 400
-      return { error: "Invalid payload" }
-    }
-
-    const raidPayload = parsedBody.data
-    const parsedStashValue =
-      uploadJob.parsedStashValue === null ? null : toOneDecimalMillion(Number(uploadJob.parsedStashValue))
-    const editedByUser =
-      parsedStashValue === null || toOneDecimalMillion(raidPayload.stashValue) !== parsedStashValue
-    const latestStashValue = await getLatestStashValue(user.id)
-    const delta = latestStashValue === null ? 0 : Math.abs(raidPayload.stashValue - latestStashValue)
-    if (latestStashValue !== null && delta > env.stashDeltaWarningThresholdM && !raidPayload.forceConfirm) {
-      const warning: UploadConfirmWarningDto = {
-        lastStashValue: latestStashValue,
-        currentStashValue: raidPayload.stashValue,
-        delta: toOneDecimalMillion(delta),
-        threshold: env.stashDeltaWarningThresholdM,
+  .post(
+    "/uploads/:uploadId/confirm",
+    async ({ authContext, params, body, set }) => {
+      const currentAuth = requireAuthContext(authContext, set)
+      if (!currentAuth) {
+        return { error: "Unauthorized" }
       }
-      set.status = 409
-      return {
-        error: "Large stash change detected. Confirm again with forceConfirm=true to continue.",
-        warning,
+      const user = currentAuth.localUser
+      const uploadJob = await getUploadJobForUser(params.uploadId, user.id)
+      if (!uploadJob) {
+        set.status = 404
+        return { error: "Upload job not found" }
       }
-    }
 
-    const confirmedAt = new Date()
-    const raidId = await persistConfirmedSnapshot({
-      userId: user.id,
-      uploadJobId: uploadJob.id,
-      stashValue: raidPayload.stashValue,
-      confidence: uploadJob.confidence,
-      raidMode: raidPayload.raidMode,
-      extracted: raidPayload.extracted,
-      loadoutCost: raidPayload.loadoutCost,
-      consumablesCost: raidPayload.consumablesCost,
-      insuranceCost: raidPayload.insuranceCost,
-      confirmedAt,
-    })
+      const parsedBody = confirmUploadSchema.safeParse(body)
+      if (!parsedBody.success) {
+        set.status = 400
+        return { error: "Invalid payload" }
+      }
 
-    const [updatedJob] = await db
-      .update(manualUploadJobsTable)
-      .set({
-        status: "confirmed",
-        confirmedStashValue: raidPayload.stashValue.toString(),
-        parseNotes: JSON.stringify({
-          ...parseUploadJobParseNotes(uploadJob.parseNotes),
-          confirmation: {
-            method: "user",
-            confirmedByUser: true,
-            editedByUser,
-            confirmedAt: confirmedAt.toISOString(),
-          },
-        } satisfies UploadJobParseNotes),
-        updatedAt: confirmedAt,
+      const raidPayload = parsedBody.data
+      const parsedStashValue =
+        uploadJob.parsedStashValue === null
+          ? null
+          : toOneDecimalMillion(Number(uploadJob.parsedStashValue))
+      const editedByUser =
+        parsedStashValue === null ||
+        toOneDecimalMillion(raidPayload.stashValue) !== parsedStashValue
+      const latestStashValue = await getLatestStashValue(user.id)
+      const delta =
+        latestStashValue === null
+          ? 0
+          : Math.abs(raidPayload.stashValue - latestStashValue)
+      if (
+        latestStashValue !== null &&
+        delta > env.stashDeltaWarningThresholdM &&
+        !raidPayload.forceConfirm
+      ) {
+        const warning: UploadConfirmWarningDto = {
+          lastStashValue: latestStashValue,
+          currentStashValue: raidPayload.stashValue,
+          delta: toOneDecimalMillion(delta),
+          threshold: env.stashDeltaWarningThresholdM,
+        }
+        set.status = 409
+        return {
+          error:
+            "Large stash change detected. Confirm again with forceConfirm=true to continue.",
+          warning,
+        }
+      }
+
+      const confirmedAt = new Date()
+      const raidId = await persistConfirmedSnapshot({
+        userId: user.id,
+        uploadJobId: uploadJob.id,
+        stashValue: raidPayload.stashValue,
+        confidence: uploadJob.confidence,
+        raidMode: raidPayload.raidMode,
+        extracted: raidPayload.extracted,
+        loadoutCost: raidPayload.loadoutCost,
+        consumablesCost: raidPayload.consumablesCost,
+        insuranceCost: raidPayload.insuranceCost,
+        confirmedAt,
       })
-      .where(and(eq(manualUploadJobsTable.id, uploadJob.id), eq(manualUploadJobsTable.userId, user.id)))
-      .returning()
 
-    await rebuildAllTimeLeaderboardForUser(user.id)
+      const [updatedJob] = await db
+        .update(manualUploadJobsTable)
+        .set({
+          status: "confirmed",
+          confirmedStashValue: raidPayload.stashValue.toString(),
+          parseNotes: JSON.stringify({
+            ...parseUploadJobParseNotes(uploadJob.parseNotes),
+            confirmation: {
+              method: "user",
+              confirmedByUser: true,
+              editedByUser,
+              confirmedAt: confirmedAt.toISOString(),
+            },
+          } satisfies UploadJobParseNotes),
+          updatedAt: confirmedAt,
+        })
+        .where(
+          and(
+            eq(manualUploadJobsTable.id, uploadJob.id),
+            eq(manualUploadJobsTable.userId, user.id)
+          )
+        )
+        .returning()
 
-    return { job: toUploadJobDto(updatedJob), raidId }
-  })
-  .delete("/uploads/:uploadId/snapshot", async ({ authContext, params, set }) => {
-    const currentAuth = requireAuthContext(authContext, set)
-    if (!currentAuth) {
-      return { error: "Unauthorized" }
+      await rebuildAllTimeLeaderboardForUser(user.id)
+
+      return { job: toUploadJobDto(updatedJob), raidId }
     }
-    const user = currentAuth.localUser
+  )
+  .delete(
+    "/uploads/:uploadId/snapshot",
+    async ({ authContext, params, set }) => {
+      const currentAuth = requireAuthContext(authContext, set)
+      if (!currentAuth) {
+        return { error: "Unauthorized" }
+      }
+      const user = currentAuth.localUser
 
-    const uploadJob = await getUploadJobForUser(params.uploadId, user.id)
-    if (!uploadJob) {
-      set.status = 404
-      return { error: "Upload job not found" }
-    }
+      const uploadJob = await getUploadJobForUser(params.uploadId, user.id)
+      if (!uploadJob) {
+        set.status = 404
+        return { error: "Upload job not found" }
+      }
 
-    const result = await deleteSnapshotForUpload(user.id, params.uploadId)
-    if (!result.deleted) {
-      set.status = 409
-      return { error: "No snapshot found for this upload." }
-    }
+      const result = await deleteSnapshotForUpload(user.id, params.uploadId)
+      if (!result.deleted) {
+        set.status = 409
+        return { error: "No snapshot found for this upload." }
+      }
 
-    await rebuildAllTimeLeaderboardForUser(user.id)
-    return {
-      deleted: true,
-      deletedSessionIds: result.deletedSessionIds,
+      await rebuildAllTimeLeaderboardForUser(user.id)
+      return {
+        deleted: true,
+        deletedSessionIds: result.deletedSessionIds,
+      }
     }
-  })
+  )
   .get("/uploads", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)
     if (!currentAuth) {

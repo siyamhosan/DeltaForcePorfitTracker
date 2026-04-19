@@ -9,6 +9,8 @@ import type {
   LeaderboardEntryDto,
   SessionHistoryItem,
   UploadJobDto,
+  ApiKeyDto,
+  ApiKeyWithSecretDto,
 } from "@workspace/domain"
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000/v1"
@@ -138,5 +140,15 @@ export function createApi(getToken: GetToken) {
         "/leaderboard?period=all_time",
         getToken
       ),
+    getApiKeys: () => apiFetch<{ keys: ApiKeyDto[] }>("/app/api-keys", getToken),
+    createApiKey: (input: { name: string; type: "desktop" | "manual" }) =>
+      apiFetch<ApiKeyWithSecretDto>("/app/api-keys", getToken, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    deleteApiKey: (keyId: string) =>
+      apiFetch<{ revoked: boolean }>(`/app/api-keys/${keyId}`, getToken, {
+        method: "DELETE",
+      }),
   }
 }

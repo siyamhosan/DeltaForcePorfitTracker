@@ -38,9 +38,9 @@ COPY apps/ocr-core/stashOrc.py apps/ocr-core/stash_api.py ./
 
 RUN useradd --create-home --uid 1000 appuser && \
     mkdir -p /app/.cache /app/debug_stash && \
-    chown -R appuser:appuser /app
+    chown -R 1000:1000 /app
 
-USER appuser
+USER 1000:1000
 
 EXPOSE 8765
 

@@ -1,0 +1,130 @@
+name: dfstash-dev
+
+volumes:
+  postgres_data_dev:
+  bun_cache:
+  root_node_modules:
+  api_node_modules:
+  web_node_modules:
+  domain_node_modules:
+  ui_node_modules:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-profit_tracker}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-profit_tracker} || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  ocr:
+    build:
+      context: .
+      dockerfile: apps/ocr-core/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "8765"
+      CORS_ORIGINS: "*"
+    ports:
+      - "${OCR_PORT:-8765}:8765"
+    volumes:
+      - ./data/ocr-cache:/app/.cache
+      - ./data/ocr-debug:/app/debug_stash
+
+  api:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-lc",
+        "bun install && cd apps/api && bun run dev",
+      ]
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-profit_tracker}
+      OCR_ANALYZER_URL: http://ocr:8765/analyze
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4173,http://localhost:1420,tauri://localhost}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      DESKTOP_AUTH_SECRET: ${DESKTOP_AUTH_SECRET:-dev_desktop_secret_change_me}
+      DESKTOP_AUTH_TOKEN_TTL_SECONDS: ${DESKTOP_AUTH_TOKEN_TTL_SECONDS:-300}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ./:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - root_node_modules:/workspace/node_modules
+      - api_node_modules:/workspace/apps/api/node_modules
+      - domain_node_modules:/workspace/packages/domain/node_modules
+      - ui_node_modules:/workspace/packages/ui/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ocr:
+        condition: service_started
+
+  web:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-lc",
+        "bun install && cd apps/web && bun run dev --host 0.0.0.0 --port 4173",
+      ]
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/v1}
+      VITE_WEB_URL: ${VITE_WEB_URL:-http://localhost:4173}
+      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+    ports:
+      - "${WEB_PORT:-4173}:4173"
+    volumes:
+      - ./:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - root_node_modules:/workspace/node_modules
+      - web_node_modules:/workspace/apps/web/node_modules
+      - domain_node_modules:/workspace/packages/domain/node_modules
+      - ui_node_modules:/workspace/packages/ui/node_modules
+    depends_on:
+      api:
+        condition: service_started
+
+  migrate:
+    image: oven/bun:1
+    profiles: ["migrate"]
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-lc",
+        "bun install && cd apps/api && bun run db:migrate",
+      ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-profit_tracker}
+    volumes:
+      - ./:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - root_node_modules:/workspace/node_modules
+      - api_node_modules:/workspace/apps/api/node_modules
+      - domain_node_modules:/workspace/packages/domain/node_modules
+      - ui_node_modules:/workspace/packages/ui/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy

@@ -22,6 +22,7 @@ export const uploadJobStatusEnum = pgEnum("upload_job_status", [
 
 export const raidModeEnum = pgEnum("raid_mode", ["operations", "warfare"])
 export const sessionStatusEnum = pgEnum("session_status", ["active", "ended"])
+export const apiKeyTypeEnum = pgEnum("api_key_type", ["desktop", "manual"])
 
 export const usersTable = pgTable(
   "users",
@@ -123,4 +124,27 @@ export const leaderboardEntriesTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("leaderboard_period_user_idx").on(table.period, table.userId)]
+)
+
+export const apiKeysTable = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: integer("user_id")
+      .references(() => usersTable.id, { onDelete: "cascade" })
+      .notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    type: apiKeyTypeEnum("type").notNull().default("manual"),
+    prefix: varchar("prefix", { length: 24 }).notNull(),
+    secretHash: varchar("secret_hash", { length: 64 }).notNull(),
+    encryptedSecret: text("encrypted_secret"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("api_keys_secret_hash_idx").on(table.secretHash),
+    uniqueIndex("api_keys_prefix_idx").on(table.prefix),
+  ]
 )

@@ -29,6 +29,13 @@
       "when": 1776458762251,
       "tag": "0003_high_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777000000000,
+      "tag": "0004_quick_desktop_keys",
+      "breakpoints": true
     }
   ]
 }

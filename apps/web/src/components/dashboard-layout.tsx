@@ -4,6 +4,7 @@ import {
   RiCalendarScheduleLine,
   RiDashboardLine,
   RiImage2Line,
+  RiKey2Line,
   RiMedal2Line,
 } from "@remixicon/react"
 import { DashboardShell } from "@workspace/ui/components/dashboard-shell"
@@ -17,6 +18,7 @@ const navigation = [
   { name: "Sessions", href: "/app/sessions", icon: RiCalendarScheduleLine },
   { name: "Uploads", href: "/app/uploads", icon: RiImage2Line },
   { name: "Leaderboard", href: "/app/leaderboard", icon: RiMedal2Line },
+  { name: "API Keys", href: "/app/api-keys", icon: RiKey2Line },
 ]
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
