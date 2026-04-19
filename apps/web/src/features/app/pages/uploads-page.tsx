@@ -4,7 +4,11 @@ import type {
   UploadConfirmWarningDto,
 } from "@workspace/domain"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { RiImageLine, RiUploadCloud2Line } from "@remixicon/react"
+import {
+  RiCharacterRecognitionLine,
+  RiImageLine,
+  RiUploadCloud2Line,
+} from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
 import { Link } from "react-router-dom"
 import {
@@ -31,9 +35,6 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
   const api = useMemo(() => createApi(getToken), [getToken])
   const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [originalFileSizeBytes, setOriginalFileSizeBytes] = useState<
-    number | null
-  >(null)
   const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(
     null
   )
@@ -198,7 +199,6 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
         URL.revokeObjectURL(selectedPreviewUrl)
       }
 
-      setOriginalFileSizeBytes(file.size)
       setSelectedFile(optimizedFile)
       setSelectedPreviewUrl(URL.createObjectURL(optimizedFile))
 
@@ -413,7 +413,6 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       URL.revokeObjectURL(selectedPreviewUrl)
     }
     setSelectedFile(null)
-    setOriginalFileSizeBytes(null)
     setSelectedPreviewUrl(null)
     setClipboardHint(null)
     setClipboardError(null)
@@ -651,18 +650,35 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                   : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
               }`}
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      Job #{upload.id.slice(0, 8)}
+                      Snapshot #{upload.id.slice(0, 8)}
                     </p>
-                    <span className="w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                      {upload.status}
-                    </span>
+                    {upload.status === "confirmed" ? (
+                      <IconBadge
+                        title="Status: confirmed"
+                        className="border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </IconBadge>
+                    ) : null}
                     {upload.status === "processed" ? (
                       <IconBadge
-                        title="Awaiting confirmation"
+                        title="Status: awaiting confirmation"
                         className="border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
                       >
                         <svg
@@ -680,10 +696,11 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                         </svg>
                       </IconBadge>
                     ) : null}
-                    {upload.confirmationMethod === "auto" ? (
+                    {upload.status !== "processed" &&
+                    upload.status !== "confirmed" ? (
                       <IconBadge
-                        title="Auto-confirmed"
-                        className="border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
+                        title={`Status: ${upload.status}`}
+                        className="border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                       >
                         <svg
                           className="h-3.5 w-3.5"
@@ -695,9 +712,17 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M9.75 3a1.5 1.5 0 013 0v1.31a7.5 7.5 0 014.94 4.94H19.5a1.5 1.5 0 010 3h-1.31a7.5 7.5 0 01-4.94 4.94V21a1.5 1.5 0 01-3 0v-1.31a7.5 7.5 0 01-4.94-4.94H3a1.5 1.5 0 010-3h1.31a7.5 7.5 0 014.94-4.94V3z"
+                            d="M12 8h.01M11 12h1v4h1m-1-14a9 9 0 110 18 9 9 0 010-18z"
                           />
                         </svg>
+                      </IconBadge>
+                    ) : null}
+                    {upload.confirmationMethod === "auto" ? (
+                      <IconBadge
+                        title="Auto-confirmed"
+                        className="border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-200"
+                      >
+                        <RiCharacterRecognitionLine className="h-3.5 w-3.5" />
                       </IconBadge>
                     ) : null}
                     {upload.confirmationMethod === "user" ? (
@@ -741,107 +766,35 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                       </IconBadge>
                     ) : null}
                   </div>
-                  <p
-                    className="mt-1 text-xs text-zinc-500 dark:text-zinc-400"
+                </div>
+                <div className="flex flex-wrap items-center gap-2 lg:max-w-[55%] lg:justify-end">
+                  <span
+                    className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300"
                     title={formatAbsoluteDateTime(upload.createdAt)}
                   >
-                    {formatAbsoluteDateTime(upload.createdAt)} ·{" "}
-                    {formatTimeAgo(upload.createdAt)}
-                  </p>
+                    Created {formatTimeAgo(upload.createdAt)}
+                  </span>
                   {upload.confirmedAt ? (
-                    <p
-                      className="mt-1 text-xs text-zinc-500 dark:text-zinc-400"
+                    <span
+                      className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300"
                       title={formatAbsoluteDateTime(upload.confirmedAt)}
                     >
                       Confirmed {formatTimeAgo(upload.confirmedAt)}
-                    </p>
+                    </span>
                   ) : null}
                   {upload.sessionId ? (
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      Session:{" "}
+                    <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
+                      Session{" "}
                       <Link
                         to={`/app/sessions/${upload.sessionId}`}
-                        className="font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                        className="ml-1 font-semibold text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-zinc-100"
                       >
                         {upload.sessionId.slice(0, 8)}
                       </Link>
-                    </p>
+                    </span>
                   ) : null}
                 </div>
               </div>
-
-              <details className="mt-4 rounded-lg border border-zinc-200/80 bg-zinc-50/40 p-3 dark:border-zinc-800 dark:bg-zinc-900/30">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-700">
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.75 3a1.5 1.5 0 013 0v1.31a7.5 7.5 0 014.94 4.94H19.5a1.5 1.5 0 010 3h-1.31a7.5 7.5 0 01-4.94 4.94V21a1.5 1.5 0 01-3 0v-1.31a7.5 7.5 0 01-4.94-4.94H3a1.5 1.5 0 010-3h1.31a7.5 7.5 0 014.94-4.94V3z"
-                      />
-                    </svg>
-                  </span>
-                  OCR analysis
-                </summary>
-                {isLatestPreview ? (
-                  <div className="mt-3 rounded-xl bg-white/50 p-3 dark:bg-black/20">
-                    <AnalysisCanvasPreview
-                      imageUrl={latestAnalysisPreview.imageUrl}
-                      analysis={latestAnalysisPreview.analysis}
-                    />
-                  </div>
-                ) : null}
-                <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                      OCR Stash
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {ocrParsedStash !== null
-                        ? toMillionValue(ocrParsedStash)
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                      Confidence
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {ocrConfidencePct !== null
-                        ? `${ocrConfidencePct}%`
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                      Anchor
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {ocrAnalysis
-                        ? ocrAnalysis.foundTotalAssetsAnchor
-                          ? "Found"
-                          : "Missing"
-                        : "N/A"}
-                    </p>
-                  </div>
-                  {ocrAnalysis?.stashValueText ? (
-                    <div>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        Raw Text
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {ocrAnalysis.stashValueText}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </details>
 
               {upload.status === "processed" ? (
                 <div className="mt-6 space-y-4">
@@ -1033,6 +986,67 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                   </div>
                 </div>
               ) : null}
+
+              <details className="mt-2 rounded-lg bg-zinc-50/40 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold tracking-wide text-zinc-600 uppercase dark:text-zinc-300">
+                  <IconBadge title="Status: confirmed" className="border-2">
+                    <RiCharacterRecognitionLine className="h-3.5 w-3.5" />
+                  </IconBadge>
+                  OCR analysis
+                </summary>
+                {isLatestPreview ? (
+                  <div className="mt-3 rounded-xl bg-white/50 p-3 dark:bg-black/20">
+                    <AnalysisCanvasPreview
+                      imageUrl={latestAnalysisPreview.imageUrl}
+                      analysis={latestAnalysisPreview.analysis}
+                    />
+                  </div>
+                ) : null}
+                <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div>
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      OCR Stash
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {ocrParsedStash !== null
+                        ? toMillionValue(ocrParsedStash)
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      Confidence
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {ocrConfidencePct !== null
+                        ? `${ocrConfidencePct}%`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      Anchor
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {ocrAnalysis
+                        ? ocrAnalysis.foundTotalAssetsAnchor
+                          ? "Found"
+                          : "Missing"
+                        : "N/A"}
+                    </p>
+                  </div>
+                  {ocrAnalysis?.stashValueText ? (
+                    <div>
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                        Raw Text
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {ocrAnalysis.stashValueText}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </div>
           )
         })}
