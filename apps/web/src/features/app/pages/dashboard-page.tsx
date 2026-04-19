@@ -9,6 +9,7 @@ import { ApiKeysPage } from "./api-keys-page"
 import { SessionDetailPage } from "./session-detail-page"
 import { SessionsPage } from "./sessions-page"
 import { UploadsPage } from "./uploads-page"
+import { DesktopTabPage } from "./desktop-tab-page"
 
 export function DashboardPage() {
   const { isLoaded, isSignedIn, getToken } = useAuth()
@@ -37,6 +38,7 @@ export function DashboardPage() {
           <Route path="/sessions/:sessionId" element={<SessionDetailPage getToken={getToken} />} />
           <Route path="/uploads" element={<UploadsPage getToken={getToken} />} />
           <Route path="/leaderboard" element={<LeaderboardPage getToken={getToken} />} />
+          <Route path="/desktop" element={<DesktopTabPage />} />
           <Route path="/api-keys" element={<ApiKeysPage getToken={getToken} />} />
           <Route path="*" element={<Navigate to="/not-found" replace />} />
         </Routes>

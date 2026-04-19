@@ -35,9 +35,19 @@ The in-game profile is great, but it doesn't tell the whole story. If you want t
 
 ## Getting Started
 
-*(Note: We will add simple download links here once the app binaries are officially released!)*
+1. **Create an account / Login** with Google or Twitch on [https://dfstash.bzr.lt](https://dfstash.bzr.lt)
+2. **Upload** your in-game profile screenshots and enjoy tracking!
 
-For now, you can sign in to the web dashboard and manually upload your stash screenshots to start tracking your progress.
+*(Optional but highly recommended)*
+- **Get the Desktop App**
+- Link it with the website
+- Setup your hotkey
+- Press the hotkey to instantly capture and enjoy tracking!
+
+### Downloads
+
+- [Delta Force Desktop Tracker Setup (.exe)](https://github.com/siyamhosan/DeltaForcePorfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64-setup.exe)
+- [Delta Force Desktop Tracker Installer (.msi)](https://github.com/siyamhosan/DeltaForcePorfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64_en-US.msi)
 
 ---
 

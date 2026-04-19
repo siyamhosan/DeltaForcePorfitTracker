@@ -6,6 +6,7 @@ import {
   RiImage2Line,
   RiKey2Line,
   RiMedal2Line,
+  RiComputerLine,
 } from "@remixicon/react"
 import { DashboardShell } from "@workspace/ui/components/dashboard-shell"
 
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Sessions", href: "/app/sessions", icon: RiCalendarScheduleLine },
   { name: "Uploads", href: "/app/uploads", icon: RiImage2Line },
   { name: "Leaderboard", href: "/app/leaderboard", icon: RiMedal2Line },
+  { name: "Desktop App", href: "/app/desktop", icon: RiComputerLine },
   { name: "API Keys", href: "/app/api-keys", icon: RiKey2Line },
 ]
 
