@@ -6,9 +6,20 @@ The stack is built around **non-invasive** capture—screenshots plus OCR—rath
 
 ---
 
+## Screenshots
+
+### Web Dashboard
+![Web Dashboard](imgs/web.png)
+
+### Desktop Tracker
+![Desktop Tracker](imgs/desktop.png)
+![Desktop Tracker Idle](imgs/deskstop_idel.png)
+
+---
+
 ## Why this project exists
 
-The in-game profile only goes so far. Many players want **longitudinal profit analytics**, **session history**, and **leaderboards** that reflect economic performance—not just one-off match stats. This repo provides a **web app**, **API**, and **optional OCR service** you can run yourself (including via Docker).
+The in-game profile only goes so far. Many players want **longitudinal profit analytics**, **session history**, and **leaderboards** that reflect economic performance—not just one-off match stats. This repo provides a **web app**, **API**, **desktop tracker**, and **optional OCR service** you can run yourself (including via Docker).
 
 ---
 
@@ -20,9 +31,15 @@ The in-game profile only goes so far. Many players want **longitudinal profit an
 - **Landing page** that explains the product: open source, analytics-forward, security-conscious auth.
 - **Dashboard** tuned for both desktop and mobile (bottom navigation on small screens, streamlined shell).
 
+### Desktop Tracker (Released!)
+
+- **Native Windows App** for seamless screenshot capturing.
+- **Hotkey-triggered capture** to upload stash screenshots without leaving the game.
+- Built as a **non-invasive** companion using visual telemetry, complying with anti-cheat protections.
+
 ### Stash value from screenshots
 
-- **Upload stash screenshots** (manual upload, drag-and-drop, clipboard—where the UI supports it): images go to the API, which calls an **external OCR analyzer** (DocTR-based service in `apps/ocr-core`) to read total stash value from the HUD.
+- **Upload stash screenshots** (manual upload, drag-and-drop, clipboard, or via the Desktop Tracker): images go to the API, which calls an **external OCR analyzer** (DocTR-based service in `apps/ocr-core`) to read total stash value from the HUD.
 - **Preview & confidence**: when the model finds the “total assets” anchor and confidence is high enough, flows can skip redundant confirmation; otherwise you **confirm or correct** the parsed value.
 - **Safety checks**: large jumps vs your last known stash can trigger a **warning threshold** before anything is committed—reduces fat-finger and mis-OCR mistakes.
 - Values are treated as **millions (M)** in the UI (e.g. `36.4M`); storage uses a compact numeric form where applicable.
@@ -60,7 +77,6 @@ The intended model (still being refined in code):
 
 ### Capture & platforms
 
-- **`apps/desktop`**: path toward **hotkey-triggered capture** and optional automation (Windows-first reality for many anti-cheat–protected titles)—aligned with “visual telemetry” instead of memory reading.
 - **Resolution-robust OCR**: crop/normalize pipelines that behave across aspect ratios (PC vs mobile screenshots).
 
 ### Community & streaming (longer horizon)
@@ -77,14 +93,14 @@ The intended model (still being refined in code):
 
 ## For developers
 
-Monorepo: **Bun** + **Turbo**; web **Vite/React**, API **Elysia** on Bun, DB **PostgreSQL** + **Drizzle**, OCR **FastAPI** + DocTR.
+Monorepo: **Bun** + **Turbo**; web **Vite/React**, API **Elysia** on Bun, DB **PostgreSQL** + **Drizzle**, OCR **FastAPI** + DocTR, Desktop **Tauri/React**.
 
 | Path | Role |
 |------|------|
 | `apps/web` | SPA: landing, dashboard (overview, uploads, leaderboard) |
 | `apps/api` | HTTP API under `/v1`, Clerk, uploads + app routes |
 | `apps/ocr-core` | `POST /analyze` for stash images (CPU Docker image) |
-| `apps/desktop` | Desktop client workspace |
+| `apps/desktop` | Desktop client workspace (Tauri app) |
 | `packages/domain` | Shared schemas/types |
 | `packages/ui` | Shared UI components & theme |
 
@@ -92,6 +108,7 @@ Monorepo: **Bun** + **Turbo**; web **Vite/React**, API **Elysia** on Bun, DB **P
 
 - [Bun](https://bun.sh) (see root `package.json`)
 - Docker + Compose v2 for containerized deploy
+- [Rust](https://www.rust-lang.org/) & [Tauri CLI](https://tauri.app/) (for desktop development)
 
 ### Local dev
 
@@ -101,6 +118,13 @@ bun dev
 ```
 
 Configure `DATABASE_URL`, `CLERK_SECRET_KEY`, and `OCR_ANALYZER_URL` for the API when testing uploads.
+
+### Desktop dev
+
+```bash
+cd apps/desktop
+bun tauri dev
+```
 
 ### Production (Docker Compose)
 
@@ -138,6 +162,7 @@ docker build -f apps/ocr-core/Dockerfile -t profittracker-ocr .
 ### Tech stack summary
 
 - **Frontend:** React 19, React Router, TanStack Query, Clerk React, Vite 7, Tailwind/shadcn-style UI.
+- **Desktop:** Tauri (Rust), React 19, Vite.
 - **Backend:** Elysia, Drizzle, `pg`, Clerk.
 - **OCR:** FastAPI, Uvicorn, python-doctr, PyTorch (CPU in Docker), OpenCV.
 

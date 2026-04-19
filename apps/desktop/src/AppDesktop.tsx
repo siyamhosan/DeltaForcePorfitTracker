@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useMemo } from "react"
 import { invoke } from "@tauri-apps/api/core"
 import {
   RiComputerLine,
@@ -212,7 +213,10 @@ export default function AppDesktop() {
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false)
   const captureInFlightRef = useRef(false)
 
-  const api = authToken ? createDesktopApi(authToken) : null
+  const api = useMemo(
+    () => (authToken ? createDesktopApi(authToken) : null),
+    [authToken]
+  )
 
   const clearAuth = useCallback((reason?: string) => {
     window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)

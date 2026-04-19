@@ -65,6 +65,15 @@ struct TrayMenuState {
     hotkey_item: MenuItem<tauri::Wry>,
 }
 
+#[cfg(desktop)]
+fn show_main_window(app: &tauri::AppHandle<tauri::Wry>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -527,7 +536,9 @@ pub fn run() {
     let mut builder = tauri::Builder::default();
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}));
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            show_main_window(app);
+        }));
     }
 
     builder
@@ -574,10 +585,7 @@ pub fn run() {
                     .show_menu_on_left_click(false)
                     .on_menu_event(|app, event| match event.id.as_ref() {
                         "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                            show_main_window(app);
                         }
                         "quit" => {
                             app.exit(0);
@@ -592,10 +600,7 @@ pub fn run() {
                         } = event
                         {
                             let app = tray.app_handle();
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                            show_main_window(&app);
                         }
                     })
                     .build(app)?;
