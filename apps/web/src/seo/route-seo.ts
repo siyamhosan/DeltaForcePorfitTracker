@@ -16,6 +16,7 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
     keywords: [
       "delta force stash tracker",
       "delta force profit tracker",
+      "free delta force stats",
       "hawk ops profit tracking",
       "open source stash tracker",
     ],
@@ -38,6 +39,7 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
       "delta force stash tracker",
       "stash screenshot tracker",
       "ocr stash value tracker",
+      "free stash tracker delta force",
     ],
     includeInSitemap: true,
   },
