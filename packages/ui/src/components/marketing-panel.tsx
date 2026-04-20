@@ -13,6 +13,8 @@ type MarketingPanelProps = {
   headline: string
   description: string
   features: MarketingFeature[]
+  /** Optional visuals between the feature grid and the footer (e.g. product screenshots). */
+  preview?: ReactNode
   footer?: ReactNode
   logoText?: string
 }
@@ -22,6 +24,7 @@ export function MarketingPanel({
   headline,
   description,
   features,
+  preview,
   footer,
   logoText = "Δ",
 }: MarketingPanelProps) {
@@ -70,6 +73,8 @@ export function MarketingPanel({
             ))}
           </div>
         </div>
+
+        {preview ? <div className="relative z-10 mt-8">{preview}</div> : null}
       </div>
 
       {footer ? (

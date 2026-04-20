@@ -12,7 +12,7 @@ import {
 import { AuthShell } from "@workspace/ui/components/auth-shell"
 import { MarketingPanel } from "@workspace/ui/components/marketing-panel"
 import type { ReactNode } from "react"
-import { Link, Navigate } from "react-router-dom"
+import { Navigate } from "react-router-dom"
 
 import { getRouteSeo } from "@/seo/route-seo"
 import { SeoHead, buildPublicSchemas } from "@/seo/seo-head"
@@ -140,25 +140,25 @@ export function LandingPage({
                   <span>Open source</span>
                 </a>
                 <div className="w-full text-xs text-zinc-500 dark:text-zinc-400">
-                  <Link to="/features/stash-tracker" className="hover:underline">
+                  <a href="/features/stash-tracker" className="hover:underline">
                     Stash tracker
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/features/profit-calculator" className="hover:underline">
+                  <a href="/features/profit-calculator" className="hover:underline">
                     Profit calculator
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/features/ocr-stash-value" className="hover:underline">
+                  <a href="/features/ocr-stash-value" className="hover:underline">
                     OCR stash value
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/self-hosted-game-profit-tracker" className="hover:underline">
+                  <a href="/self-hosted-game-profit-tracker" className="hover:underline">
                     Self-hosted
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/open-source-stash-analytics" className="hover:underline">
+                  <a href="/open-source-stash-analytics" className="hover:underline">
                     Open source analytics
-                  </Link>
+                  </a>
                 </div>
               </div>
             }
