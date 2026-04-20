@@ -14,6 +14,8 @@ use tauri::WindowEvent;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+#[cfg(desktop)]
+use tauri_plugin_autostart::MacosLauncher;
 #[cfg(target_os = "windows")]
 use windows::Win32::Media::Audio::{PlaySoundW, SND_ALIAS, SND_ASYNC, SND_NODEFAULT};
 #[cfg(target_os = "windows")]
@@ -531,14 +533,26 @@ fn chrono_like_timestamp() -> String {
     format!("{}", duration.as_millis())
 }
 
+#[cfg(desktop)]
+fn has_autostart_flag() -> bool {
+    std::env::args().any(|arg| arg == "--autostart")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            show_main_window(app);
-        }));
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+                if !argv.iter().any(|arg| arg == "--autostart") {
+                    show_main_window(app);
+                }
+            }))
+            .plugin(tauri_plugin_autostart::init(
+                MacosLauncher::LaunchAgent,
+                Some(vec!["--autostart"]),
+            ));
     }
 
     builder
@@ -547,6 +561,9 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
+            #[cfg(desktop)]
+            let started_from_autostart = has_autostart_flag();
+
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
@@ -604,6 +621,12 @@ pub fn run() {
                         }
                     })
                     .build(app)?;
+            }
+
+            #[cfg(desktop)]
+            if !started_from_autostart {
+                let app_handle = app.handle().clone();
+                show_main_window(&app_handle);
             }
             Ok(())
         })

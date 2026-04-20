@@ -8,6 +8,7 @@
     "core:event:default",
     "opener:default",
     "notification:default",
+    "autostart:default",
     "deep-link:default",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-register",

@@ -32,6 +32,7 @@ const SOUND_CAPTURE_FAILURE_STORAGE_KEY = "desktop.sound.captureFailure"
 const DEFAULT_CAPTURE_HOTKEY = "Ctrl+Shift+F8"
 const WEB_BASE_URL = import.meta.env.VITE_WEB_URL ?? "http://localhost:4173"
 const DESKTOP_CALLBACK_URL = "dftstash://auth/callback"
+const DESKTOP_APP_VERSION = import.meta.env.PACKAGE_VERSION ?? "0.1.0"
 const isDesktopTauriRuntime =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 
@@ -211,6 +212,7 @@ export default function AppDesktop() {
     []
   )
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false)
+  const [startOnWindowsStartup, setStartOnWindowsStartup] = useState(false)
   const captureInFlightRef = useRef(false)
 
   const api = useMemo(
@@ -288,6 +290,20 @@ export default function AppDesktop() {
     void invoke<MonitorOption[]>("list_capture_monitors")
       .then((monitors) => setAvailableMonitors(monitors))
       .catch(() => setAvailableMonitors([]))
+  }, [])
+
+  useEffect(() => {
+    if (!isDesktopTauriRuntime) return
+    const loadStartupState = async () => {
+      try {
+        const { isEnabled } = await import("@tauri-apps/plugin-autostart")
+        const enabled = await isEnabled()
+        setStartOnWindowsStartup(enabled)
+      } catch {
+        setStartOnWindowsStartup(false)
+      }
+    }
+    void loadStartupState()
   }, [])
 
   useEffect(() => {
@@ -536,6 +552,26 @@ export default function AppDesktop() {
     )
   }, [])
 
+  const handleToggleWindowsStartup = useCallback(
+    async (enabled: boolean) => {
+      if (!isDesktopTauriRuntime) return
+      try {
+        const { enable, disable } = await import("@tauri-apps/plugin-autostart")
+        if (enabled) {
+          await enable()
+          setStatusMessage("Windows startup enabled.")
+        } else {
+          await disable()
+          setStatusMessage("Windows startup disabled.")
+        }
+        setStartOnWindowsStartup(enabled)
+      } catch {
+        setStatusMessage("Failed to update Windows startup setting.")
+      }
+    },
+    []
+  )
+
   useEffect(() => {
     if (!isRecordingHotkey) return
     const handler = (event: KeyboardEvent) => {
@@ -609,6 +645,7 @@ export default function AppDesktop() {
           <p>User: {displayName}</p>
           <p>Profit: {toCurrencyText(overview?.totalProfit)}</p>
           <p>Latest stash: {toCurrencyText(overview?.latestStashValue)}</p>
+          <p>App version: v{DESKTOP_APP_VERSION}</p>
         </div>
       </aside>
 
@@ -910,6 +947,16 @@ export default function AppDesktop() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     Actions
                   </p>
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span>Start with Windows (background only)</span>
+                    <input
+                      type="checkbox"
+                      checked={startOnWindowsStartup}
+                      onChange={(event) => {
+                        void handleToggleWindowsStartup(event.target.checked)
+                      }}
+                    />
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
