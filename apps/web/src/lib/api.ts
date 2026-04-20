@@ -29,7 +29,11 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, getToken: GetToken, init?: RequestInit): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  getToken: GetToken,
+  init?: RequestInit
+): Promise<T> {
   const token = await getToken()
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -53,7 +57,9 @@ async function apiFetch<T>(path: string, getToken: GetToken, init?: RequestInit)
     const message =
       response.status >= 500
         ? "Server error. Please try again."
-        : parsedBody?.error ?? parsedBody?.message ?? `Request failed: ${response.status}`
+        : (parsedBody?.error ??
+          parsedBody?.message ??
+          `Request failed: ${response.status}`)
     const payload = parsedBody ?? (rawText ? { raw: rawText } : null)
     throw new ApiError(message, response.status, payload)
   }
@@ -63,26 +69,38 @@ async function apiFetch<T>(path: string, getToken: GetToken, init?: RequestInit)
 
 export function createApi(getToken: GetToken) {
   return {
-    getOverview: () => apiFetch<DashboardOverviewDto>("/app/overview", getToken),
-    getSessions: () => apiFetch<SessionHistoryItem[]>("/app/sessions", getToken),
+    getOverview: () =>
+      apiFetch<DashboardOverviewDto>("/app/overview", getToken),
+    getSessions: () =>
+      apiFetch<SessionHistoryItem[]>("/app/sessions", getToken),
     getSessionsPaginated: (page: number, pageSize = 20) =>
       apiFetch<PaginatedSessionsDto>(
         `/app/sessions/paginated?page=${page}&pageSize=${pageSize}`,
         getToken
       ),
     getSessionById: (sessionId: string) =>
-      apiFetch<{ session: SessionHistoryItem }>(`/app/sessions/${sessionId}`, getToken),
+      apiFetch<{ session: SessionHistoryItem }>(
+        `/app/sessions/${sessionId}`,
+        getToken
+      ),
     getSessionRaids: (sessionId: string) =>
       apiFetch<{ raids: ActiveSessionRaidDto[] }>(
         `/app/sessions/${sessionId}/raids`,
         getToken
       ),
     getActiveSession: () =>
-      apiFetch<{ activeSession: ActiveSessionDto | null }>("/app/session/active", getToken),
+      apiFetch<{ activeSession: ActiveSessionDto | null }>(
+        "/app/session/active",
+        getToken
+      ),
     endSession: () =>
-      apiFetch<{ endedSession: SessionHistoryItem | null }>("/app/session/end", getToken, {
-        method: "POST",
-      }),
+      apiFetch<{ endedSession: SessionHistoryItem | null }>(
+        "/app/session/end",
+        getToken,
+        {
+          method: "POST",
+        }
+      ),
     getReopenableLastSession: () =>
       apiFetch<{ reopenableSession: ReopenableSessionDto | null }>(
         "/app/session/reopen-last",
@@ -119,14 +137,14 @@ export function createApi(getToken: GetToken) {
         forceConfirm?: boolean
       }
     ) =>
-      apiFetch<{ job: UploadJobDto; raidId: string; warning?: UploadConfirmWarningDto }>(
-        `/app/uploads/${uploadId}/confirm`,
-        getToken,
-        {
-          method: "POST",
-          body: JSON.stringify(input),
-        }
-      ),
+      apiFetch<{
+        job: UploadJobDto
+        raidId: string
+        warning?: UploadConfirmWarningDto
+      }>(`/app/uploads/${uploadId}/confirm`, getToken, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
     deleteUploadSnapshot: (uploadId: string) =>
       apiFetch<{ deleted: boolean; deletedSessionIds: string[] }>(
         `/app/uploads/${uploadId}/snapshot`,
@@ -140,7 +158,8 @@ export function createApi(getToken: GetToken) {
         "/leaderboard?period=all_time",
         getToken
       ),
-    getApiKeys: () => apiFetch<{ keys: ApiKeyDto[] }>("/app/api-keys", getToken),
+    getApiKeys: () =>
+      apiFetch<{ keys: ApiKeyDto[] }>("/app/api-keys", getToken),
     createApiKey: (input: { name: string; type: "desktop" | "manual" }) =>
       apiFetch<ApiKeyWithSecretDto>("/app/api-keys", getToken, {
         method: "POST",

@@ -35,14 +35,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       productName="Delta Force"
       userSlot={
         <div className="group block flex-shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="gap-2 flex items-center">
             <UserButton />
             <button
               type="button"
-              className="ml-1 hidden text-left lg:block"
+              className="ml-1 lg:block hidden text-left"
               onClick={() => clerk.openUserProfile()}
             >
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[140px]">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 max-w-[140px] truncate">
                 {user?.fullName || user?.primaryEmailAddress?.emailAddress}
               </p>
               <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">

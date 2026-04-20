@@ -9,6 +9,8 @@ import {
   ProfitCalculatorFeaturePage,
   SelfHostedPage,
   StashTrackerFeaturePage,
+  DeltaForceStatsPage,
+  DeltaForceProfitTrackerPage,
 } from "./features/seo/pages/keyword-pages"
 import { NotFoundPage } from "./features/seo/pages/not-found-page"
 import { SeoScorecardPage } from "./features/seo/pages/seo-scorecard-page"
@@ -19,11 +21,31 @@ export function AppRoot() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/sign-up" element={<LandingPage mode="sign-up" />} />
       <Route path="/desktop/connect" element={<DesktopConnectPage />} />
-      <Route path="/features/stash-tracker" element={<StashTrackerFeaturePage />} />
-      <Route path="/features/profit-calculator" element={<ProfitCalculatorFeaturePage />} />
+      <Route
+        path="/features/stash-tracker"
+        element={<StashTrackerFeaturePage />}
+      />
+      <Route
+        path="/features/profit-calculator"
+        element={<ProfitCalculatorFeaturePage />}
+      />
       <Route path="/features/ocr-stash-value" element={<OcrFeaturePage />} />
-      <Route path="/self-hosted-game-profit-tracker" element={<SelfHostedPage />} />
-      <Route path="/open-source-stash-analytics" element={<OpenSourceAnalyticsPage />} />
+      <Route
+        path="/features/delta-force-stats"
+        element={<DeltaForceStatsPage />}
+      />
+      <Route
+        path="/features/delta-force-profit-tracker"
+        element={<DeltaForceProfitTrackerPage />}
+      />
+      <Route
+        path="/self-hosted-game-profit-tracker"
+        element={<SelfHostedPage />}
+      />
+      <Route
+        path="/open-source-stash-analytics"
+        element={<OpenSourceAnalyticsPage />}
+      />
       <Route path="/seo-scorecard" element={<SeoScorecardPage />} />
       <Route path="/app/*" element={<DashboardPage />} />
       <Route path="/not-found" element={<NotFoundPage />} />

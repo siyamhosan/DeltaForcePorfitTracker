@@ -1,6 +1,11 @@
 import { useEffect } from "react"
 
-import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_URL } from "./site-config"
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_OG_IMAGE,
+  SITE_URL,
+} from "./site-config"
 
 type SeoHeadProps = {
   title: string
@@ -43,7 +48,9 @@ function upsertCanonicalTag(url: string) {
 
 function removeJsonLdTags() {
   document
-    .querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"][data-managed-seo="true"]')
+    .querySelectorAll<HTMLScriptElement>(
+      'script[type="application/ld+json"][data-managed-seo="true"]'
+    )
     .forEach((node) => node.remove())
 }
 
@@ -57,7 +64,9 @@ function appendJsonLd(jsonLd: Record<string, unknown>[]) {
   }
 }
 
-export function buildPublicSchemas(pathname: string): Record<string, unknown>[] {
+export function buildPublicSchemas(
+  pathname: string
+): Record<string, unknown>[] {
   const pageUrl = `${SITE_URL}${pathname}`
 
   return [

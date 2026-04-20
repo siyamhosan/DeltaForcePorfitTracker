@@ -48,7 +48,11 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
     title: "Delta Force Profit Calculator - Session Trends",
     description:
       "Measure session profit, duration, and progress with clear summaries and leaderboard context.",
-    keywords: ["delta force profit calculator", "raid profit tracking", "session profit tracker"],
+    keywords: [
+      "delta force profit calculator",
+      "raid profit tracking",
+      "session profit tracker",
+    ],
     includeInSitemap: true,
   },
   {
@@ -64,7 +68,11 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
     title: "Self-Hosted Game Profit Tracker - Delta Force",
     description:
       "Deploy the open source stack with Docker and run stash/profit analytics on your own infrastructure.",
-    keywords: ["self hosted game tracker", "self hosted profit tracker", "delta force docker tracker"],
+    keywords: [
+      "self hosted game tracker",
+      "self hosted profit tracker",
+      "delta force docker tracker",
+    ],
     includeInSitemap: true,
   },
   {
@@ -72,13 +80,44 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
     title: "Open Source Stash Analytics for Delta Force",
     description:
       "Explore the repository, contribute features, and use community-driven stash analytics workflows.",
-    keywords: ["open source stash analytics", "delta force open source tracker", "github stash tracker"],
+    keywords: [
+      "open source stash analytics",
+      "delta force open source tracker",
+      "github stash tracker",
+    ],
+    includeInSitemap: true,
+  },
+  {
+    path: "/features/delta-force-stats",
+    title: "Delta Force Stats Tracker - Open Source Tracker",
+    description:
+      "Track your Delta Force stats, profit trends, sessions, and leaderboard performance with screenshot OCR.",
+    keywords: [
+      "delta force stats",
+      "delta force stats tracker",
+      "delta force stats steam",
+      "delta force stats player",
+      "delta force stats explained",
+    ],
+    includeInSitemap: true,
+  },
+  {
+    path: "/features/delta-force-profit-tracker",
+    title: "Delta Force Profit Tracker - Session Trends",
+    description:
+      "Measure Delta Force session profit, duration, and progress with clear summaries and leaderboard context.",
+    keywords: [
+      "delta force profit tracker",
+      "raid profit tracking",
+      "session profit tracker",
+    ],
     includeInSitemap: true,
   },
   {
     path: "/seo-scorecard",
     title: "SEO Growth Scorecard - Delta Force Profit Tracker",
-    description: "Internal scorecard for SEO growth milestones and reporting cadence.",
+    description:
+      "Internal scorecard for SEO growth milestones and reporting cadence.",
     robots: "noindex, nofollow",
     includeInSitemap: false,
   },
@@ -91,7 +130,9 @@ export const PUBLIC_ROUTE_SEO: RouteSeoConfig[] = [
   },
 ]
 
-const ROUTE_SEO_MAP = new Map(PUBLIC_ROUTE_SEO.map((route) => [route.path, route]))
+const ROUTE_SEO_MAP = new Map(
+  PUBLIC_ROUTE_SEO.map((route) => [route.path, route])
+)
 
 export function getRouteSeo(pathname: string): RouteSeoConfig | null {
   return ROUTE_SEO_MAP.get(pathname) ?? null

@@ -22,7 +22,14 @@ type KeywordPageProps = {
   steps: string[]
 }
 
-function KeywordPage({ pathname, heading, intro, bullets, previewImage, steps }: KeywordPageProps) {
+function KeywordPage({
+  pathname,
+  heading,
+  intro,
+  bullets,
+  previewImage,
+  steps,
+}: KeywordPageProps) {
   const seo = PUBLIC_ROUTE_SEO.find((route) => route.path === pathname)
   if (!seo) {
     return null
@@ -43,41 +50,49 @@ function KeywordPage({ pathname, heading, intro, bullets, previewImage, steps }:
         robots={seo.robots}
         jsonLd={buildPublicSchemas(pathname)}
       />
-      <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-10 px-6 py-14">
+      <main className="max-w-5xl gap-10 px-6 py-14 mx-auto flex min-h-screen w-full flex-col">
         <header className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          <p className="text-xs font-semibold text-zinc-500 tracking-[0.2em] uppercase">
             Delta Force Profit Tracker
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
             {heading}
           </h1>
-          <p className="max-w-3xl text-base text-zinc-600 dark:text-zinc-300">{intro}</p>
+          <p className="max-w-3xl text-base text-zinc-600 dark:text-zinc-300">
+            {intro}
+          </p>
         </header>
 
-        <section className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-          <div className="grid gap-0 md:grid-cols-2">
-            <div className="flex flex-col justify-center p-6 md:p-8">
+        <section className="border-zinc-200/70 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50 overflow-hidden rounded-2xl border">
+          <div className="gap-0 md:grid-cols-2 grid">
+            <div className="p-6 md:p-8 flex flex-col justify-center">
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 See the dashboard in action
               </h2>
               <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-                Real UI from the open-source project—upload a stash screenshot and your trendline updates
-                automatically.
+                Real UI from the open-source project—upload a stash screenshot
+                and your trendline updates automatically.
               </p>
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-5 gap-3 flex flex-wrap">
                 <Link to="/sign-up">
                   <Button>Create free account</Button>
                 </Link>
-                <a href={DESKTOP_APP_EXE_URL} target="_blank" rel="noreferrer noopener">
-                  <Button variant="outline">Download desktop app (Windows)</Button>
+                <a
+                  href={DESKTOP_APP_EXE_URL}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <Button variant="outline">
+                    Download desktop app (Windows)
+                  </Button>
                 </a>
               </div>
             </div>
-            <div className="border-t border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 md:border-l md:border-t-0">
+            <div className="border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 md:border-l md:border-t-0 border-t">
               <img
                 src={hero.src}
                 alt={hero.alt}
-                className="h-auto w-full rounded-lg border border-zinc-200 shadow-sm dark:border-zinc-800"
+                className="border-zinc-200 shadow-sm dark:border-zinc-800 h-auto w-full rounded-lg border"
                 loading="lazy"
                 decoding="async"
               />
@@ -85,44 +100,51 @@ function KeywordPage({ pathname, heading, intro, bullets, previewImage, steps }:
           </div>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-2xl border">
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             Why players use this workflow
           </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-zinc-700 dark:text-zinc-300">
+          <ul className="mt-4 space-y-2 pl-5 text-zinc-700 dark:text-zinc-300 list-disc">
             {bullets.map((bullet) => (
               <li key={bullet}>{bullet}</li>
             ))}
           </ul>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">How it works</h2>
-          <ol className="mt-4 list-decimal space-y-3 pl-5 text-zinc-700 dark:text-zinc-300">
+        <section className="border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-2xl border">
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            How it works
+          </h2>
+          <ol className="mt-4 space-y-3 pl-5 text-zinc-700 dark:text-zinc-300 list-decimal">
             {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
         </section>
 
-        <section className="rounded-2xl border border-emerald-900/20 bg-emerald-950/40 p-6 dark:bg-emerald-950/25">
+        <section className="border-emerald-900/20 bg-emerald-950/40 p-6 dark:bg-emerald-950/25 rounded-2xl border">
           <h2 className="text-xl font-semibold text-emerald-950 dark:text-emerald-100">
             Privacy and fair play
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-emerald-950/90 dark:text-emerald-100/90">
-            Your stash data stays tied to your account; we do not read game memory. Tracking is built on
-            screenshots and OCR so you avoid ban risk from invasive tools. Sign-in uses Clerk—you can use
-            Google or Twitch. Prefer full control? Self-host the stack with Docker from the repository.
+            Your stash data stays tied to your account; we do not read game
+            memory. Tracking is built on screenshots and OCR so you avoid ban
+            risk from invasive tools. Sign-in uses Clerk—you can use Google or
+            Twitch. Prefer full control? Self-host the stack with Docker from
+            the repository.
           </p>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200/70 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Try it now</h2>
+        <section className="border-zinc-200/70 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-950 rounded-2xl border">
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            Try it now
+          </h2>
           <p className="mt-2 text-zinc-700 dark:text-zinc-300">
-            Start with a free account, upload a stash screenshot, and see your trendline immediately. The
-            Windows desktop app adds hotkey capture so you can log runs without leaving the game for long.
+            Start with a free account, upload a stash screenshot, and see your
+            trendline immediately. The Windows desktop app adds hotkey capture
+            so you can log runs without leaving the game for long.
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 gap-3 flex flex-wrap">
             <Link to="/sign-up">
               <Button>Start free</Button>
             </Link>
@@ -134,8 +156,10 @@ function KeywordPage({ pathname, heading, intro, bullets, previewImage, steps }:
             Related: <Link to="/features/stash-tracker">stash tracker</Link>,{" "}
             <Link to="/features/profit-calculator">profit calculator</Link>,{" "}
             <Link to="/features/ocr-stash-value">OCR stash value</Link>,{" "}
-            <Link to="/self-hosted-game-profit-tracker">self-hosted setup</Link>,{" "}
-            <Link to="/open-source-stash-analytics">open source analytics</Link>.
+            <Link to="/self-hosted-game-profit-tracker">self-hosted setup</Link>
+            ,{" "}
+            <Link to="/open-source-stash-analytics">open source analytics</Link>
+            .
           </p>
         </section>
       </main>
@@ -169,6 +193,50 @@ export function ProfitCalculatorFeaturePage() {
   return (
     <KeywordPage
       pathname="/features/profit-calculator"
+      heading="Profit calculator for Delta Force sessions and trends"
+      intro="Measure performance over time using stash deltas, session summaries, and leaderboard context. Ideal if you are optimizing runs and want a free alternative to paid stat services—your data stays under your account."
+      bullets={[
+        "Track session-level wins, losses, and average profit per run.",
+        "Use timeline data to find when gains accelerate or stagnate.",
+        "Compare performance against leaderboard metrics to benchmark progress.",
+        "Export-friendly workflows: open source stack if you need CSV or custom analytics later.",
+      ]}
+      steps={[
+        "Create snapshots after each raid or session using uploads or hotkey capture.",
+        "Let the app compute deltas between stash readings for profit per session.",
+        "Open overview and session views to see profit per hour and trends.",
+        "Iterate on play style using what the charts show—not guesswork.",
+      ]}
+    />
+  )
+}
+
+export function DeltaForceStatsPage() {
+  return (
+    <KeywordPage
+      pathname="/features/delta-force-stats"
+      heading="Delta Force Stats Tracker built for screenshot workflows"
+      intro="Track your Delta Force stats across uploads and sessions without manual spreadsheets. Built for Delta Force: Hawk Ops players who want long-term visibility into total assets and profit—free and open source."
+      bullets={[
+        "OCR parsing captures stats totals from screenshots in seconds.",
+        "Warnings highlight large jumps so bad reads do not pollute your trend.",
+        "Historical snapshots reveal long-term stat growth and volatility.",
+        "Compare your trajectory with leaderboard context to see how you stack up against other players.",
+      ]}
+      steps={[
+        "Sign up with Google or Twitch and open the dashboard.",
+        "Upload a stash screen from your profile or use the desktop app hotkey.",
+        "Confirm the OCR read when prompted, then watch your stat timeline update.",
+        "Review sessions and profit when you group raids for deeper analytics.",
+      ]}
+    />
+  )
+}
+
+export function DeltaForceProfitTrackerPage() {
+  return (
+    <KeywordPage
+      pathname="/features/delta-force-profit-tracker"
       heading="Profit calculator for Delta Force sessions and trends"
       intro="Measure performance over time using stash deltas, session summaries, and leaderboard context. Ideal if you are optimizing runs and want a free alternative to paid stat services—your data stays under your account."
       bullets={[

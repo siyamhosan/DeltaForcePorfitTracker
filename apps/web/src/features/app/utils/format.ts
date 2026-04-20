@@ -81,7 +81,10 @@ export function formatDuration(seconds: number) {
     .join(":")
 }
 
-export function formatProfitPerHour(totalProfit: number, durationSeconds: number) {
+export function formatProfitPerHour(
+  totalProfit: number,
+  durationSeconds: number
+) {
   if (durationSeconds <= 0) {
     return "0.0M/h"
   }
@@ -97,7 +100,9 @@ export function parseMillionInput(value: string) {
     return null
   }
 
-  const withoutSuffix = normalized.endsWith("M") ? normalized.slice(0, -1) : normalized
+  const withoutSuffix = normalized.endsWith("M")
+    ? normalized.slice(0, -1)
+    : normalized
   if (!/^\d{1,4}(\.\d)?$/.test(withoutSuffix)) {
     return null
   }

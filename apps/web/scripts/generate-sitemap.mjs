@@ -3,7 +3,7 @@ import path from "node:path"
 
 import { canonicalUrl, sitemapRoutes } from "./seo-routes.mjs"
 
-const projectRoot = new URL("..", import.meta.url).pathname
+const projectRoot = process.cwd()
 const publicDir = path.join(projectRoot, "public")
 const distDir = path.join(projectRoot, "dist")
 

@@ -45,8 +45,8 @@ export function SessionsPage({ getToken }: { getToken: GetToken }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-zinc-200/70 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="gap-6 flex flex-col">
+      <div className="border-zinc-200/70 from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 rounded-2xl border bg-gradient-to-br">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
           Sessions
         </h1>
@@ -56,28 +56,28 @@ export function SessionsPage({ getToken }: { getToken: GetToken }) {
       </div>
 
       {sessionsQuery.isLoading ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <div className="border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 rounded-xl border">
           Loading sessions...
         </div>
       ) : sessionsQuery.isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700 shadow-sm dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+        <div className="border-red-200 bg-red-50 p-6 text-sm text-red-700 shadow-sm dark:border-red-900 dark:bg-red-950/30 dark:text-red-300 rounded-xl border">
           Could not load sessions.
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <div className="border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 rounded-xl border">
           No sessions yet.
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="gap-4 sm:grid-cols-2 xl:grid-cols-3 grid">
           {sessions.map((session) => (
             <Link
               key={session.id}
               to={`/app/sessions/${session.id}`}
-              className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+              className="border-zinc-200 bg-white p-4 shadow-sm hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 rounded-xl border transition-colors"
             >
-              <div className="flex items-center justify-between gap-2">
+              <div className="gap-2 flex items-center justify-between">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                     session.status === "active"
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                       : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
@@ -97,27 +97,42 @@ export function SessionsPage({ getToken }: { getToken: GetToken }) {
                 <p className="text-sm text-zinc-700 dark:text-zinc-300">
                   {formatAbsoluteDateTime(session.startedAt)}
                 </p>
-                <div className="grid grid-cols-2 gap-2 pt-1 text-sm">
+                <div className="gap-2 pt-1 text-sm grid grid-cols-2">
                   <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Profit</p>
-                    <p className={`font-semibold ${profitClassName(session.totalProfit)}`}>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Profit
+                    </p>
+                    <p
+                      className={`font-semibold ${profitClassName(session.totalProfit)}`}
+                    >
                       {toMillionValue(session.totalProfit)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Profit / h</p>
-                    <p className={`font-semibold ${profitClassName(session.totalProfit)}`}>
-                      {formatProfitPerHour(session.totalProfit, session.durationSeconds)}
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Profit / h
+                    </p>
+                    <p
+                      className={`font-semibold ${profitClassName(session.totalProfit)}`}
+                    >
+                      {formatProfitPerHour(
+                        session.totalProfit,
+                        session.durationSeconds
+                      )}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Duration</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Duration
+                    </p>
                     <p className="font-medium text-zinc-900 dark:text-zinc-100">
                       {formatDuration(session.durationSeconds)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Final Stash</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Final Stash
+                    </p>
                     <p className="font-medium text-zinc-900 dark:text-zinc-100">
                       {toMillionValue(session.currentStashValue)}
                     </p>
@@ -130,7 +145,11 @@ export function SessionsPage({ getToken }: { getToken: GetToken }) {
       )}
 
       <div className="flex items-center justify-between">
-        <Button variant="outline" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+        <Button
+          variant="outline"
+          disabled={page <= 1}
+          onClick={() => goToPage(page - 1)}
+        >
           Previous
         </Button>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -147,4 +166,3 @@ export function SessionsPage({ getToken }: { getToken: GetToken }) {
     </div>
   )
 }
-

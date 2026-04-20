@@ -43,29 +43,31 @@ export function SeoScorecardPage() {
         pathname="/seo-scorecard"
         robots="noindex, nofollow"
       />
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-12">
+      <main className="max-w-4xl gap-8 px-6 py-12 mx-auto flex w-full flex-col">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
           SEO Growth Scorecard
         </h1>
-        <section className="rounded-2xl border border-zinc-200/70 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="border-zinc-200/70 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 rounded-2xl border">
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             Authority and distribution loop
           </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-zinc-700 dark:text-zinc-300">
+          <ul className="mt-4 space-y-2 pl-5 text-zinc-700 dark:text-zinc-300 list-disc">
             {authorityLoop.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </section>
-        <section className="rounded-2xl border border-zinc-200/70 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="border-zinc-200/70 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-950 rounded-2xl border">
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             30 / 60 / 90 day milestones
           </h2>
           <div className="mt-4 space-y-5">
             {milestones.map((milestone) => (
               <article key={milestone.period}>
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{milestone.period}</h3>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-zinc-700 dark:text-zinc-300">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {milestone.period}
+                </h3>
+                <ul className="mt-2 space-y-1 pl-5 text-zinc-700 dark:text-zinc-300 list-disc">
                   {milestone.targets.map((target) => (
                     <li key={target}>{target}</li>
                   ))}

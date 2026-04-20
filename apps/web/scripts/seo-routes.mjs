@@ -125,6 +125,34 @@ export const seoRoutes = [
 </main>`,
   },
   {
+    path: "/features/delta-force-stats",
+    title: "Delta Force Stats Tracker - Open Source Tracker",
+    description: "Track your Delta Force stats, profit trends, sessions, and leaderboard performance with screenshot OCR.",
+    keywords: ["delta force stats", "delta force stats tracker", "delta force stats steam", "delta force stats player", "delta force stats explained"],
+    robots: "index, follow",
+    includeInSitemap: true,
+    body: `<main style="font-family:Inter,system-ui,Arial,sans-serif;max-width:860px;margin:0 auto;padding:48px 24px;color:#18181b;">
+<h1 style="font-size:36px;line-height:1.15;margin:0 0 12px;">Delta Force Stats Tracker</h1>
+<p style="font-size:18px;color:#3f3f46;margin:0 0 16px;">Track your Delta Force stats over time using uploads or the Windows desktop companion—no spreadsheets required.</p>
+<p style="font-size:16px;line-height:1.65;margin:0 0 12px;">OCR reads your stats and total assets from screenshots; confidence checks and warnings help keep bad reads out of your charts.</p>
+<p style="font-size:16px;line-height:1.65;margin:0;"><a href="/sign-up">Sign up free</a> · <a href="/features/delta-force-profit-tracker">Profit Tracker</a> · <a href="/features/ocr-stash-value">OCR details</a></p>
+</main>`,
+  },
+  {
+    path: "/features/delta-force-profit-tracker",
+    title: "Delta Force Profit Tracker - Session Trends",
+    description: "Measure Delta Force session profit, duration, and progress with clear summaries and leaderboard context.",
+    keywords: ["delta force profit tracker", "raid profit tracking", "session profit tracker"],
+    robots: "index, follow",
+    includeInSitemap: true,
+    body: `<main style="font-family:Inter,system-ui,Arial,sans-serif;max-width:860px;margin:0 auto;padding:48px 24px;color:#18181b;">
+<h1 style="font-size:36px;line-height:1.15;margin:0 0 12px;">Delta Force Profit Tracker</h1>
+<p style="font-size:18px;color:#3f3f46;margin:0 0 16px;">Measure profit per session, duration, and long-term trajectory from stash deltas—free and open source.</p>
+<p style="font-size:16px;line-height:1.65;margin:0 0 12px;">Pair uploads with session views to see when your economy accelerates and how you rank versus the community leaderboard.</p>
+<p style="font-size:16px;line-height:1.65;margin:0;"><a href="/sign-up">Create account</a> · <a href="/features/delta-force-stats">Stats Tracking</a> · <a href="/open-source-stash-analytics">Contribute on GitHub</a></p>
+</main>`,
+  },
+  {
     path: "/seo-scorecard",
     title: "SEO Growth Scorecard - Delta Force Profit Tracker",
     description: "Internal scorecard for SEO growth milestones and reporting cadence.",

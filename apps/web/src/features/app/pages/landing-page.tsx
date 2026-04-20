@@ -115,7 +115,7 @@ export function LandingPage({
         hint={
           <span>
             (Press{" "}
-            <kbd className="rounded-md border bg-muted px-1.5 py-0.5 font-sans">
+            <kbd className="px-1.5 py-0.5 rounded-md border bg-muted font-sans">
               d
             </kbd>{" "}
             for dark mode)
@@ -128,35 +128,61 @@ export function LandingPage({
             description="Screenshot your stash, review the numbers, watch trends, and climb the boards."
             features={marketingFeatures}
             footer={
-              <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="gap-4 flex flex-wrap items-center justify-between">
                 <p>© {new Date().getFullYear()} Delta Force Profit Tracker</p>
                 <a
                   href="https://github.com/siyamhosan/DeltaForcePorfitTracker"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-zinc-500 hover:underline"
+                  className="gap-2 text-zinc-500 flex items-center hover:underline"
                 >
                   <RiGithubFill className="h-5 w-5 shrink-0" aria-hidden />
                   <span>Open source</span>
                 </a>
-                <div className="w-full text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 w-full">
+                  <a
+                    href="/features/delta-force-stats"
+                    className="hover:underline"
+                  >
+                    Stats Tracker
+                  </a>{" "}
+                  ·{" "}
+                  <a
+                    href="/features/delta-force-profit-tracker"
+                    className="hover:underline"
+                  >
+                    Profit Tracker
+                  </a>{" "}
+                  ·{" "}
                   <a href="/features/stash-tracker" className="hover:underline">
                     Stash tracker
                   </a>{" "}
                   ·{" "}
-                  <a href="/features/profit-calculator" className="hover:underline">
+                  <a
+                    href="/features/profit-calculator"
+                    className="hover:underline"
+                  >
                     Profit calculator
                   </a>{" "}
                   ·{" "}
-                  <a href="/features/ocr-stash-value" className="hover:underline">
+                  <a
+                    href="/features/ocr-stash-value"
+                    className="hover:underline"
+                  >
                     OCR stash value
                   </a>{" "}
                   ·{" "}
-                  <a href="/self-hosted-game-profit-tracker" className="hover:underline">
+                  <a
+                    href="/self-hosted-game-profit-tracker"
+                    className="hover:underline"
+                  >
                     Self-hosted
                   </a>{" "}
                   ·{" "}
-                  <a href="/open-source-stash-analytics" className="hover:underline">
+                  <a
+                    href="/open-source-stash-analytics"
+                    className="hover:underline"
+                  >
                     Open source analytics
                   </a>
                 </div>

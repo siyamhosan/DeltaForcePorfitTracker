@@ -16,7 +16,9 @@ export function DashboardPage() {
   const { pathname } = useLocation()
 
   if (!isLoaded) {
-    return <div className="flex min-h-screen bg-background w-full items-center justify-center"></div>
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background"></div>
+    )
   }
 
   if (!isSignedIn) {
@@ -34,12 +36,27 @@ export function DashboardPage() {
       <DashboardLayout>
         <Routes>
           <Route path="/" element={<OverviewPage getToken={getToken} />} />
-          <Route path="/sessions" element={<SessionsPage getToken={getToken} />} />
-          <Route path="/sessions/:sessionId" element={<SessionDetailPage getToken={getToken} />} />
-          <Route path="/uploads" element={<UploadsPage getToken={getToken} />} />
-          <Route path="/leaderboard" element={<LeaderboardPage getToken={getToken} />} />
+          <Route
+            path="/sessions"
+            element={<SessionsPage getToken={getToken} />}
+          />
+          <Route
+            path="/sessions/:sessionId"
+            element={<SessionDetailPage getToken={getToken} />}
+          />
+          <Route
+            path="/uploads"
+            element={<UploadsPage getToken={getToken} />}
+          />
+          <Route
+            path="/leaderboard"
+            element={<LeaderboardPage getToken={getToken} />}
+          />
           <Route path="/desktop" element={<DesktopTabPage />} />
-          <Route path="/api-keys" element={<ApiKeysPage getToken={getToken} />} />
+          <Route
+            path="/api-keys"
+            element={<ApiKeysPage getToken={getToken} />}
+          />
           <Route path="*" element={<Navigate to="/not-found" replace />} />
         </Routes>
       </DashboardLayout>

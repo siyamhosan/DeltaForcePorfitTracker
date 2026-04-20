@@ -3,7 +3,7 @@ import path from "node:path"
 
 import { seoRoutes } from "./seo-routes.mjs"
 
-const projectRoot = new URL("..", import.meta.url).pathname
+const projectRoot = process.cwd()
 const publicSitemapPath = path.join(projectRoot, "public", "sitemap.xml")
 
 const invalidRoute = seoRoutes.find(

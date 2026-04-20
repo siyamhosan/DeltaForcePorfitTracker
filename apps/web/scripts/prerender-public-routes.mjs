@@ -3,7 +3,7 @@ import path from "node:path"
 
 import { canonicalUrl, resolvedSiteUrl, seoRoutes } from "./seo-routes.mjs"
 
-const projectRoot = new URL("..", import.meta.url).pathname
+const projectRoot = process.cwd()
 const distDir = path.join(projectRoot, "dist")
 const defaultOgImage = `${resolvedSiteUrl}/og/default.svg`
 

@@ -91,7 +91,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       <span
         title={title}
         aria-label={title}
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${className}`}
+        className={`h-6 w-6 inline-flex items-center justify-center rounded-full border ${className}`}
       >
         {children}
       </span>
@@ -463,8 +463,8 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-zinc-200/70 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="gap-6 flex flex-col">
+      <div className="border-zinc-200/70 from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 rounded-2xl border bg-gradient-to-br">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
           Manual Uploads
         </h1>
@@ -472,14 +472,14 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
           Upload via drag/drop, clipboard, or file picker. OCR values are
           handled externally.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
+        <div className="mt-4 gap-3 sm:grid-cols-3 grid">
+          <div className="border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60 rounded-lg border">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Total Jobs
             </p>
             <p className="text-lg font-semibold">{uploads.length}</p>
           </div>
-          <div className="rounded-lg border border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
+          <div className="border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60 rounded-lg border">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Awaiting Confirm
             </p>
@@ -487,7 +487,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               {uploads.filter((job) => job.status === "processed").length}
             </p>
           </div>
-          <div className="rounded-lg border border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
+          <div className="border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60 rounded-lg border">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Confirmed
             </p>
@@ -499,14 +499,14 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+        <div className="border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200 rounded-lg border">
           {error}
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-xl border">
         <div
-          className={`rounded-xl border-2 border-dashed p-6 transition-colors ${
+          className={`p-6 rounded-xl border-2 border-dashed transition-colors ${
             isDragActive
               ? "border-primary bg-primary/5"
               : "border-zinc-300 bg-zinc-50/50 dark:border-zinc-700 dark:bg-zinc-900/30"
@@ -538,7 +538,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
             selectImageFile(file)
           }}
         >
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="gap-3 flex flex-col items-center text-center">
             {!selectedFile ? (
               <>
                 <RiUploadCloud2Line className="h-8 w-8 text-zinc-500" />
@@ -548,8 +548,8 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                   </p>
                   <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     Click anywhere on this card to browse, or paste from
-                    clipboard (<kbd className="rounded border px-1">Ctrl</kbd> +{" "}
-                    <kbd className="rounded border px-1">V</kbd>)
+                    clipboard (<kbd className="rounded px-1 border">Ctrl</kbd> +{" "}
+                    <kbd className="rounded px-1 border">V</kbd>)
                   </p>
                   <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     Large screenshots are auto-optimized before upload.
@@ -567,13 +567,13 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               className="hidden"
             />
             {clipboardError ? (
-              <div className="w-full rounded-lg border border-red-200 bg-red-50 p-2 text-left text-xs text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+              <div className="border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200 w-full rounded-lg border text-left">
                 {clipboardError}
               </div>
             ) : null}
 
             {isOptimizingImage ? (
-              <div className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-left text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              <div className="border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 w-full rounded-lg border text-left">
                 Optimizing screenshot for faster upload...
               </div>
             ) : null}
@@ -583,21 +583,21 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 <img
                   src={selectedPreviewUrl}
                   alt="Selected upload preview"
-                  className="max-h-64 w-full rounded-lg border border-zinc-200 bg-zinc-100 object-contain dark:border-zinc-700 dark:bg-zinc-800"
+                  className="max-h-64 border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 w-full rounded-lg border object-contain"
                 />
               </div>
             ) : null}
 
             {selectedFile ? (
               <div className="flex w-full items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="gap-2 text-xs text-zinc-500 dark:text-zinc-400 flex items-center">
                   <RiImageLine className="h-4 w-4" />
                   <span>
                     {clipboardHint ? clipboardHint : selectedFile?.name}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="gap-2 flex items-center">
                   <Button
                     onClick={onUpload}
                     disabled={submitting || isOptimizingImage}
@@ -618,7 +618,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="gap-4 grid">
         {uploads.map((upload) => {
           const stashInput =
             stashInputByUpload[upload.id] ??
@@ -644,15 +644,15 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
           return (
             <div
               key={upload.id}
-              className={`rounded-xl border p-6 shadow-sm transition-colors ${
+              className={`p-6 shadow-sm rounded-xl border transition-colors ${
                 upload.status === "processed"
                   ? "border-amber-300 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20"
                   : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
               }`}
             >
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="gap-3 lg:flex-row lg:items-start lg:justify-between flex flex-col">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="gap-2 flex flex-wrap items-center">
                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       Snapshot #{upload.id.slice(0, 8)}
                     </p>
@@ -767,27 +767,27 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                     ) : null}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 lg:max-w-[55%] lg:justify-end">
+                <div className="gap-2 lg:max-w-[55%] lg:justify-end flex flex-wrap items-center">
                   <span
-                    className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300"
+                    className="border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300 inline-flex items-center rounded-md border"
                     title={formatAbsoluteDateTime(upload.createdAt)}
                   >
                     Created {formatTimeAgo(upload.createdAt)}
                   </span>
                   {upload.confirmedAt ? (
                     <span
-                      className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300"
+                      className="border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300 inline-flex items-center rounded-md border"
                       title={formatAbsoluteDateTime(upload.confirmedAt)}
                     >
                       Confirmed {formatTimeAgo(upload.confirmedAt)}
                     </span>
                   ) : null}
                   {upload.sessionId ? (
-                    <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
+                    <span className="border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300 inline-flex items-center rounded-md border">
                       Session{" "}
                       <Link
                         to={`/app/sessions/${upload.sessionId}`}
-                        className="ml-1 font-semibold text-zinc-700 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-zinc-100"
+                        className="ml-1 font-semibold text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-zinc-100 underline underline-offset-2"
                       >
                         {upload.sessionId.slice(0, 8)}
                       </Link>
@@ -799,7 +799,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               {upload.status === "processed" &&
               upload.source !== "desktop_client" ? (
                 <div className="mt-6 space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="gap-3 flex flex-wrap items-center">
                     <span className="text-sm font-medium">
                       Is the parsed stash value correct?
                     </span>
@@ -835,7 +835,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
 
                   {selectedMode === "incorrect" ? (
                     <div className="mt-2">
-                      <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">
+                      <label className="mb-1 text-xs text-zinc-500 dark:text-zinc-400 block">
                         Enter correct stash value
                       </label>
                       <input
@@ -848,13 +848,13 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                           }))
                         }
                         placeholder="e.g. 36.4M"
-                        className="w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm sm:w-56 dark:border-zinc-700"
+                        className="border-zinc-300 px-3 py-2 text-sm sm:w-56 dark:border-zinc-700 w-full rounded-md border bg-transparent"
                       />
                     </div>
                   ) : null}
 
                   {warning ? (
-                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200">
+                    <div className="border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200 rounded-lg border">
                       <p className="font-semibold">
                         Large stash jump detected!
                       </p>
@@ -888,9 +888,9 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
               ) : upload.status === "confirmed" ? (
                 <div className="mt-5 space-y-3">
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                  <div className="gap-3 border-emerald-200/60 bg-emerald-50/50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20 flex items-center justify-between rounded-xl border">
+                    <div className="gap-3 flex items-center">
+                      <div className="h-8 w-8 bg-emerald-100 dark:bg-emerald-900/50 flex shrink-0 items-center justify-center rounded-full">
                         <svg
                           className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
                           fill="none"
@@ -951,7 +951,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                             }))
                           }
                           placeholder="Type DELETE"
-                          className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400"
+                          className="border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400 w-full rounded-md border"
                         />
                         {deleteSnapshotMutation.error instanceof Error ? (
                           <p className="text-xs text-red-600 dark:text-red-400">
@@ -988,7 +988,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
               ) : upload.status === "failed" &&
                 upload.source === "desktop_client" ? (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200">
+                <div className="mt-4 border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200 rounded-lg border">
                   <p className="font-semibold">Desktop capture failed OCR</p>
                   <p className="mt-1">
                     {upload.processingFailureReason ??
@@ -997,22 +997,22 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                 </div>
               ) : null}
 
-              <details className="mt-2 rounded-lg bg-zinc-50/40 dark:border-zinc-800 dark:bg-zinc-900/30">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold tracking-wide text-zinc-600 uppercase dark:text-zinc-300">
+              <details className="mt-2 bg-zinc-50/40 dark:border-zinc-800 dark:bg-zinc-900/30 rounded-lg">
+                <summary className="gap-2 text-xs font-semibold tracking-wide text-zinc-600 dark:text-zinc-300 flex cursor-pointer list-none items-center uppercase">
                   <IconBadge title="Status: confirmed" className="border-2">
                     <RiCharacterRecognitionLine className="h-3.5 w-3.5" />
                   </IconBadge>
                   OCR analysis
                 </summary>
                 {isLatestPreview ? (
-                  <div className="mt-3 rounded-xl bg-white/50 p-3 dark:bg-black/20">
+                  <div className="mt-3 bg-white/50 p-3 dark:bg-black/20 rounded-xl">
                     <AnalysisCanvasPreview
                       imageUrl={latestAnalysisPreview.imageUrl}
                       analysis={latestAnalysisPreview.analysis}
                     />
                   </div>
                 ) : null}
-                <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="mt-3 gap-4 sm:grid-cols-4 grid grid-cols-2">
                   <div>
                     <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                       OCR Stash

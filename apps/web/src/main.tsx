@@ -28,11 +28,14 @@ initWebVitals()
 
 function ClerkProviderWithTheme({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme()
-  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-  
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches)
+
   return (
-    <ClerkProvider 
-      publishableKey={PUBLISHABLE_KEY} 
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
       afterSignOutUrl="/"
       appearance={{
         baseTheme: isDark ? dark : undefined,
