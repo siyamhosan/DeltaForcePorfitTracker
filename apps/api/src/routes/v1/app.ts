@@ -65,6 +65,7 @@ type UploadJobParseNotes = {
   analysis?: unknown
   source?: "manual_upload" | "desktop_client"
   processingFailureReason?: string
+  ignoredReason?: "duplicate"
   confirmation?: {
     method: "auto" | "user"
     confirmedByUser: boolean
@@ -119,6 +120,51 @@ async function getLatestStashValue(userId: number) {
   return lastSnapshot?.stashValue === undefined
     ? null
     : toOneDecimalMillion(Number(lastSnapshot.stashValue))
+}
+
+async function getDuplicateReasonForActiveSession(userId: number, stashValue: number) {
+  const activeSession = await getActiveSession(userId)
+  if (!activeSession) {
+    return null
+  }
+  const normalizedIncoming = toOneDecimalMillion(stashValue)
+  const normalizedActive = toOneDecimalMillion(activeSession.currentStashValue)
+  if (normalizedIncoming !== normalizedActive) {
+    return null
+  }
+  return "duplicate" as const
+}
+
+async function markUploadIgnored(params: {
+  uploadJobId: string
+  userId: number
+  reason: "duplicate"
+  parseNotes: string | null
+  analysis?: UploadAnalysisDto
+  source: "manual_upload" | "desktop_client"
+  ignoredAt: Date
+}) {
+  const [ignoredJob] = await db
+    .update(manualUploadJobsTable)
+    .set({
+      status: "ignored",
+      confirmedStashValue: null,
+      parseNotes: JSON.stringify({
+        ...parseUploadJobParseNotes(params.parseNotes),
+        ...(params.analysis ? { analysis: params.analysis } : {}),
+        source: params.source,
+        ignoredReason: params.reason,
+      } satisfies UploadJobParseNotes),
+      updatedAt: params.ignoredAt,
+    })
+    .where(
+      and(
+        eq(manualUploadJobsTable.id, params.uploadJobId),
+        eq(manualUploadJobsTable.userId, params.userId)
+      )
+    )
+    .returning()
+  return ignoredJob
 }
 
 function requireAuthContext(
@@ -454,6 +500,27 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
         analysis.confidence >= AUTO_CONFIRM_MIN_CONFIDENCE &&
         analysis.stashValueMillions !== null
       ) {
+        const ignoredReason = await getDuplicateReasonForActiveSession(
+          user.id,
+          analysis.stashValueMillions
+        )
+        if (ignoredReason) {
+          const ignoredAt = new Date()
+          const ignoredJob = await markUploadIgnored({
+            uploadJobId: job.id,
+            userId: user.id,
+            reason: ignoredReason,
+            parseNotes: job.parseNotes,
+            analysis,
+            source: uploadSource,
+            ignoredAt,
+          })
+          return {
+            job: toUploadJobDto(ignoredJob),
+            autoConfirmed: false,
+            analysis,
+          }
+        }
         const confirmedAt = new Date()
         await persistConfirmedSnapshot({
           userId: user.id,
@@ -558,6 +625,21 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       }
 
       const confirmedAt = new Date()
+      const ignoredReason = await getDuplicateReasonForActiveSession(
+        user.id,
+        raidPayload.stashValue
+      )
+      if (ignoredReason) {
+        const ignoredJob = await markUploadIgnored({
+          uploadJobId: uploadJob.id,
+          userId: user.id,
+          reason: ignoredReason,
+          parseNotes: uploadJob.parseNotes,
+          source: parseUploadJobParseNotes(uploadJob.parseNotes).source ?? "manual_upload",
+          ignoredAt: confirmedAt,
+        })
+        return { job: toUploadJobDto(ignoredJob) }
+      }
       await persistConfirmedSnapshot({
         userId: user.id,
         uploadJobId: uploadJob.id,

@@ -444,6 +444,14 @@ export default function AppDesktop() {
         if (soundCaptureFailure) {
           void playSystemSound("failure")
         }
+      } else if (uploadResult.job.status === "ignored") {
+        setCaptureStatus("Capture ignored (duplicate stash in active session).")
+        if (notifyCaptureSuccess) {
+          void sendDesktopNotification(
+            "DFStash capture ignored",
+            "Duplicate stash value in active session. Capture marked ignored."
+          )
+        }
       } else {
         setCaptureStatus("Capture uploaded successfully.")
         if (notifyCaptureSuccess) {

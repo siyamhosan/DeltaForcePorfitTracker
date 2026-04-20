@@ -7,6 +7,7 @@ export const uploadStatusSchema = z.enum([
   "queued",
   "processed",
   "confirmed",
+  "ignored",
   "rejected",
   "failed",
 ])
@@ -68,6 +69,7 @@ export type UploadJobDto = {
   sessionId?: string | null
   source?: "manual_upload" | "desktop_client" | null
   processingFailureReason?: string | null
+  ignoredReason?: "duplicate" | null
   createdAt: string
 }
 

@@ -43,6 +43,13 @@
       "when": 1776726418593,
       "tag": "0005_wonderful_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776727434071,
+      "tag": "0006_handy_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

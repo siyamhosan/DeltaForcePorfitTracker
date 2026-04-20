@@ -362,6 +362,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
             ? confirmMutation.error.message
             : null
   const uploads = uploadsQuery.data ?? []
+  const trackedUploads = uploads.filter((job) => job.status !== "ignored")
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -477,14 +478,14 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Total Jobs
             </p>
-            <p className="text-lg font-semibold">{uploads.length}</p>
+            <p className="text-lg font-semibold">{trackedUploads.length}</p>
           </div>
           <div className="border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60 rounded-lg border">
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Awaiting Confirm
             </p>
             <p className="text-lg font-semibold">
-              {uploads.filter((job) => job.status === "processed").length}
+              {trackedUploads.filter((job) => job.status === "processed").length}
             </p>
           </div>
           <div className="border-zinc-200 bg-white/70 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60 rounded-lg border">
@@ -492,7 +493,7 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               Confirmed
             </p>
             <p className="text-lg font-semibold">
-              {uploads.filter((job) => job.status === "confirmed").length}
+              {trackedUploads.filter((job) => job.status === "confirmed").length}
             </p>
           </div>
         </div>
@@ -647,6 +648,8 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
               className={`p-6 shadow-sm rounded-xl border transition-colors ${
                 upload.status === "processed"
                   ? "border-amber-300 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20"
+                  : upload.status === "ignored"
+                    ? "border-zinc-300/80 bg-zinc-100/50 dark:border-zinc-700 dark:bg-zinc-900/70"
                   : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
               }`}
             >
@@ -993,6 +996,13 @@ export function UploadsPage({ getToken }: { getToken: GetToken }) {
                   <p className="mt-1">
                     {upload.processingFailureReason ??
                       "Desktop screenshot could not be parsed. It was marked failed automatically."}
+                  </p>
+                </div>
+              ) : upload.status === "ignored" ? (
+                <div className="mt-4 border-zinc-300 bg-zinc-100 p-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 rounded-lg border">
+                  <p className="font-semibold">Ignored</p>
+                  <p className="mt-1">
+                    Reason: {upload.ignoredReason ?? "duplicate"}
                   </p>
                 </div>
               ) : null}

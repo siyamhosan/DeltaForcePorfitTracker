@@ -15,6 +15,7 @@ export const uploadJobStatusEnum = pgEnum("upload_job_status", [
   "queued",
   "processed",
   "confirmed",
+  "ignored",
   "rejected",
   "failed",
 ])

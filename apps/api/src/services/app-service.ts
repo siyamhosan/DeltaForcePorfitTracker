@@ -125,6 +125,7 @@ function parseUploadJobMetadata(parseNotes: string | null) {
       ocrPersistedAnalysisPath: null as string | null,
       source: null as "manual_upload" | "desktop_client" | null,
       processingFailureReason: null as string | null,
+      ignoredReason: null as "duplicate" | null,
       confirmationMethod: null as "auto" | "user" | null,
       confirmedByUser: false,
       editedByUser: false,
@@ -141,6 +142,7 @@ function parseUploadJobMetadata(parseNotes: string | null) {
       ocrPersistedAnalysisPath: null as string | null,
       source: null as "manual_upload" | "desktop_client" | null,
       processingFailureReason: null as string | null,
+      ignoredReason: null as "duplicate" | null,
       confirmationMethod: null as "auto" | "user" | null,
       confirmedByUser: false,
       editedByUser: false,
@@ -166,6 +168,9 @@ function parseUploadJobMetadata(parseNotes: string | null) {
     sourceValue === "manual_upload" || sourceValue === "desktop_client"
       ? sourceValue
       : null
+  const ignoredReasonValue = root?.ignoredReason
+  const ignoredReason: "duplicate" | null =
+    ignoredReasonValue === "duplicate" ? ignoredReasonValue : null
 
   return {
     ocrAnalysis,
@@ -178,6 +183,7 @@ function parseUploadJobMetadata(parseNotes: string | null) {
       typeof root?.processingFailureReason === "string"
         ? root.processingFailureReason
         : null,
+    ignoredReason,
     confirmationMethod,
     confirmedByUser:
       typeof confirmation?.confirmedByUser === "boolean"
@@ -212,6 +218,7 @@ export function toUploadJobDto(row: typeof manualUploadJobsTable.$inferSelect): 
     confirmedAt: metadata.confirmedAt,
     source: metadata.source,
     processingFailureReason: metadata.processingFailureReason,
+    ignoredReason: metadata.ignoredReason,
     createdAt: row.createdAt.toISOString(),
   }
 }
