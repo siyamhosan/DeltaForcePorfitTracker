@@ -64,9 +64,45 @@ function appendJsonLd(jsonLd: Record<string, unknown>[]) {
   }
 }
 
-export function buildPublicSchemas(
+function toBreadcrumbLabel(segment: string): string {
+  return segment
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+function buildBreadcrumbSchema(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean)
+  const itemListElement = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: SITE_URL,
+    },
+  ]
+
+  let currentPath = ""
+  for (const [index, segment] of segments.entries()) {
+    currentPath += `/${segment}`
+    itemListElement.push({
+      "@type": "ListItem",
+      position: index + 2,
+      name: toBreadcrumbLabel(segment),
+      item: `${SITE_URL}${currentPath}`,
+    })
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement,
+  }
+}
+
+export const buildPublicSchemas = (
   pathname: string
-): Record<string, unknown>[] {
+): Record<string, unknown>[] => {
   const pageUrl = `${SITE_URL}${pathname}`
 
   return [
@@ -95,6 +131,7 @@ export function buildPublicSchemas(
       applicationCategory: "GameApplication",
       operatingSystem: "Web",
       description: SITE_DESCRIPTION,
+      inLanguage: "en",
       url: pageUrl,
       offers: {
         "@type": "Offer",
@@ -102,6 +139,7 @@ export function buildPublicSchemas(
         priceCurrency: "USD",
       },
     },
+    buildBreadcrumbSchema(pathname),
   ]
 }
 
@@ -125,6 +163,7 @@ export function SeoHead({
     upsertMetaTag("twitter:title", title)
     upsertMetaTag("twitter:description", description)
     upsertMetaTag("twitter:image", SITE_OG_IMAGE)
+    upsertMetaTag("twitter:image:alt", `${SITE_NAME} preview image`)
 
     upsertPropertyTag("og:type", "website")
     upsertPropertyTag("og:site_name", SITE_NAME)
@@ -132,6 +171,7 @@ export function SeoHead({
     upsertPropertyTag("og:description", description)
     upsertPropertyTag("og:url", url)
     upsertPropertyTag("og:image", SITE_OG_IMAGE)
+    upsertPropertyTag("og:image:alt", `${SITE_NAME} preview image`)
 
     upsertCanonicalTag(url)
     removeJsonLdTags()

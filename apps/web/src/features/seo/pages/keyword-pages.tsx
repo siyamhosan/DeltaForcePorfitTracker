@@ -153,7 +153,12 @@ function KeywordPage({
             </a>
           </div>
           <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            Related: <Link to="/features/stash-tracker">stash tracker</Link>,{" "}
+            Related: <Link to="/features/delta-force-stats">Stats Tracker</Link>
+            ,{" "}
+            <Link to="/features/delta-force-profit-tracker">
+              Profit Tracker
+            </Link>
+            , <Link to="/features/stash-tracker">stash tracker</Link>,{" "}
             <Link to="/features/profit-calculator">profit calculator</Link>,{" "}
             <Link to="/features/ocr-stash-value">OCR stash value</Link>,{" "}
             <Link to="/self-hosted-game-profit-tracker">self-hosted setup</Link>
