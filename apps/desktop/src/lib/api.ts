@@ -77,7 +77,6 @@ export function createDesktopApi(token: string) {
       apiFetch<{
         job: UploadJobDto
         autoConfirmed: boolean
-        raidId?: string
         analysis: UploadAnalysisDto
       }>(token, "/app/uploads/manual", {
         method: "POST",

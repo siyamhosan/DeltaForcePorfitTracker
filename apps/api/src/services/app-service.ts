@@ -1,11 +1,10 @@
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, isNotNull, sql } from "drizzle-orm"
 
 import { db } from "../db/client"
 import {
   gameplaySessionsTable,
   leaderboardEntriesTable,
   manualUploadJobsTable,
-  raidsTable,
   stashSnapshotsTable,
   usersTable,
 } from "../db/schema"
@@ -14,6 +13,7 @@ import type {
   ActiveSessionRaidDto,
   DashboardOverviewDto,
   LeaderboardEntryDto,
+  OverviewPageDto,
   PaginatedSessionsDto,
   ReopenableSessionDto,
   SessionHistoryItem,
@@ -217,33 +217,73 @@ export function toUploadJobDto(row: typeof manualUploadJobsTable.$inferSelect): 
 }
 
 export async function getOverview(userId: number): Promise<DashboardOverviewDto> {
-  const totalProfit = await sumSessionProfitsForUser(userId)
+  const [sessions, latestSnapshot, activeSession] = await Promise.all([
+    db.query.gameplaySessionsTable.findMany({
+      where: eq(gameplaySessionsTable.userId, userId),
+    }),
+    db.query.stashSnapshotsTable.findFirst({
+      where: eq(stashSnapshotsTable.userId, userId),
+      orderBy: [desc(stashSnapshotsTable.createdAt)],
+    }),
+    getActiveSession(userId),
+  ])
 
-  const raidRows = await db.query.raidsTable.findMany({
-    where: eq(raidsTable.userId, userId),
+  return buildDashboardOverview({
+    sessions,
+    latestStashValue: toMillionNumber(latestSnapshot?.stashValue),
+    activeSession,
   })
+}
 
-  const snapshotRows = await db.query.stashSnapshotsTable.findMany({
-    where: eq(stashSnapshotsTable.userId, userId),
-    orderBy: [desc(stashSnapshotsTable.createdAt)],
-  })
-
-  let totalExtractions = 0
-  for (const raid of raidRows) {
-    if (raid.extracted) {
-      totalExtractions += 1
-    }
+function buildDashboardOverview(params: {
+  sessions: Array<typeof gameplaySessionsTable.$inferSelect>
+  latestStashValue: number
+  activeSession: ActiveSessionDto | null
+}): DashboardOverviewDto {
+  let totalProfit = 0
+  let totalRaids = 0
+  for (const session of params.sessions) {
+    totalProfit += toMillionNumber(session.totalProfit)
+    totalRaids += session.totalRaids
   }
 
-  const activeSession = await getActiveSession(userId)
+  return {
+    totalProfit: Math.round(totalProfit * 10) / 10,
+    totalRaids,
+    // Extractions were historically stored in the removed raids table.
+    winRate: 0,
+    latestStashValue: params.latestStashValue,
+    activeSessionProfit: toMillionNumber(params.activeSession?.totalProfit),
+    activeSessionDurationSeconds: params.activeSession?.durationSeconds ?? 0,
+  }
+}
+
+export async function getOverviewPageData(userId: number): Promise<OverviewPageDto> {
+  const [allSessions, latestSnapshot, activeSession] = await Promise.all([
+    db.query.gameplaySessionsTable.findMany({
+      where: eq(gameplaySessionsTable.userId, userId),
+      orderBy: [desc(gameplaySessionsTable.startedAt)],
+    }),
+    db.query.stashSnapshotsTable.findFirst({
+      where: eq(stashSnapshotsTable.userId, userId),
+      orderBy: [desc(stashSnapshotsTable.createdAt)],
+    }),
+    getActiveSession(userId),
+  ])
+
+  const reopenableSession = activeSession
+    ? null
+    : await getReopenableLastSession(userId)
 
   return {
-    totalProfit,
-    totalRaids: raidRows.length,
-    winRate: raidRows.length ? Math.round((totalExtractions / raidRows.length) * 10000) / 100 : 0,
-    latestStashValue: toMillionNumber(snapshotRows[0]?.stashValue),
-    activeSessionProfit: toMillionNumber(activeSession?.totalProfit),
-    activeSessionDurationSeconds: activeSession?.durationSeconds ?? 0,
+    overview: buildDashboardOverview({
+      sessions: allSessions,
+      latestStashValue: toMillionNumber(latestSnapshot?.stashValue),
+      activeSession,
+    }),
+    sessions: allSessions.slice(0, 50).map(toSessionHistoryItem),
+    activeSession,
+    reopenableSession,
   }
 }
 
@@ -296,33 +336,20 @@ async function loadRaidsForSessionId(
   userId: number,
   sessionId: string
 ): Promise<ActiveSessionRaidDto[]> {
-  const raidRows = await db
-    .select({
-      id: raidsTable.id,
-      createdAt: raidsTable.createdAt,
-      stashValue: stashSnapshotsTable.stashValue,
-      uploadJobId: stashSnapshotsTable.uploadJobId,
-    })
-    .from(raidsTable)
-    .leftJoin(stashSnapshotsTable, eq(stashSnapshotsTable.raidId, raidsTable.id))
-    .where(and(eq(raidsTable.sessionId, sessionId), eq(raidsTable.userId, userId)))
-    .orderBy(desc(raidsTable.createdAt))
+  const snapshotRows = await db.query.stashSnapshotsTable.findMany({
+    where: and(
+      eq(stashSnapshotsTable.userId, userId),
+      eq(stashSnapshotsTable.sessionId, sessionId)
+    ),
+    orderBy: [desc(stashSnapshotsTable.createdAt)],
+  })
 
-  const seenRaidIds = new Set<string>()
-  const raids: ActiveSessionRaidDto[] = []
-  for (const row of raidRows) {
-    if (seenRaidIds.has(row.id)) {
-      continue
-    }
-    seenRaidIds.add(row.id)
-    raids.push({
-      id: row.id,
-      stashValue: toMillionNumber(row.stashValue),
-      createdAt: row.createdAt.toISOString(),
-      uploadJobId: row.uploadJobId,
-    })
-  }
-  return raids
+  return snapshotRows.map((snapshot) => ({
+    id: snapshot.id,
+    stashValue: toMillionNumber(snapshot.stashValue),
+    createdAt: snapshot.createdAt.toISOString(),
+    uploadJobId: snapshot.uploadJobId,
+  }))
 }
 
 /** Raids for a session owned by the user, or `null` if the session does not exist. */
@@ -587,14 +614,12 @@ export async function resolveSessionForSnapshot(
 
 export async function rebuildAllTimeLeaderboardForUser(userId: number) {
   const totalProfit = await sumSessionProfitsForUser(userId)
-
-  const [raidSummary] = await db
+  const [sessionSummary] = await db
     .select({
-      totalRaids: sql<number>`count(*)`,
-      totalExtractions: sql<number>`sum(case when ${raidsTable.extracted} then 1 else 0 end)`,
+      totalRaids: sql<number>`coalesce(sum(${gameplaySessionsTable.totalRaids}), 0)`,
     })
-    .from(raidsTable)
-    .where(eq(raidsTable.userId, userId))
+    .from(gameplaySessionsTable)
+    .where(eq(gameplaySessionsTable.userId, userId))
 
   await db
     .insert(leaderboardEntriesTable)
@@ -602,15 +627,15 @@ export async function rebuildAllTimeLeaderboardForUser(userId: number) {
       userId,
       period: "all_time",
       totalProfit: totalProfit.toString(),
-      totalRaids: raidSummary?.totalRaids ?? 0,
-      totalExtractions: raidSummary?.totalExtractions ?? 0,
+      totalRaids: sessionSummary?.totalRaids ?? 0,
+      totalExtractions: 0,
     })
     .onConflictDoUpdate({
       target: [leaderboardEntriesTable.period, leaderboardEntriesTable.userId],
       set: {
         totalProfit: totalProfit.toString(),
-        totalRaids: raidSummary?.totalRaids ?? 0,
-        totalExtractions: raidSummary?.totalExtractions ?? 0,
+        totalRaids: sessionSummary?.totalRaids ?? 0,
+        totalExtractions: 0,
         updatedAt: new Date(),
       },
     })
@@ -661,13 +686,6 @@ export async function deleteSnapshotForUpload(userId: number, uploadId: string) 
       }
     }
 
-    const relatedRaidIds = Array.from(
-      new Set(
-        snapshots
-          .map((snapshot) => snapshot.raidId)
-          .filter((value): value is string => typeof value === "string")
-      )
-    )
     const relatedSessionIds = Array.from(
       new Set(
         snapshots
@@ -679,12 +697,6 @@ export async function deleteSnapshotForUpload(userId: number, uploadId: string) 
     await tx
       .delete(stashSnapshotsTable)
       .where(and(eq(stashSnapshotsTable.userId, userId), eq(stashSnapshotsTable.uploadJobId, uploadId)))
-
-    if (relatedRaidIds.length > 0) {
-      await tx
-        .delete(raidsTable)
-        .where(and(eq(raidsTable.userId, userId), inArray(raidsTable.id, relatedRaidIds)))
-    }
 
     const deletedSessionIds: string[] = []
     const now = new Date()
@@ -702,9 +714,6 @@ export async function deleteSnapshotForUpload(userId: number, uploadId: string) 
       })
 
       if (remainingSnapshots.length === 0) {
-        await tx
-          .delete(raidsTable)
-          .where(and(eq(raidsTable.userId, userId), eq(raidsTable.sessionId, sessionId)))
         await tx
           .delete(gameplaySessionsTable)
           .where(and(eq(gameplaySessionsTable.id, sessionId), eq(gameplaySessionsTable.userId, userId)))

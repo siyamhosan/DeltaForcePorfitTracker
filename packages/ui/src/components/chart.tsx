@@ -368,4 +368,5 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  RechartsPrimitive,
 }

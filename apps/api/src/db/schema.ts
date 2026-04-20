@@ -1,5 +1,4 @@
 import {
-  boolean,
   integer,
   numeric,
   pgEnum,
@@ -20,7 +19,6 @@ export const uploadJobStatusEnum = pgEnum("upload_job_status", [
   "failed",
 ])
 
-export const raidModeEnum = pgEnum("raid_mode", ["operations", "warfare"])
 export const sessionStatusEnum = pgEnum("session_status", ["active", "ended"])
 export const apiKeyTypeEnum = pgEnum("api_key_type", ["desktop", "manual"])
 
@@ -35,22 +33,6 @@ export const usersTable = pgTable(
   },
   (table) => [uniqueIndex("users_clerk_user_id_idx").on(table.clerkUserId)]
 )
-
-export const raidsTable = pgTable("raids", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: integer("user_id")
-    .references(() => usersTable.id, { onDelete: "cascade" })
-    .notNull(),
-  mode: raidModeEnum("mode").notNull().default("operations"),
-  extracted: boolean("extracted").notNull().default(false),
-  loadoutCost: numeric("loadout_cost", { precision: 6, scale: 1 }).notNull().default("0"),
-  consumablesCost: numeric("consumables_cost", { precision: 6, scale: 1 }).notNull().default("0"),
-  insuranceCost: numeric("insurance_cost", { precision: 6, scale: 1 }).notNull().default("0"),
-  sessionId: uuid("session_id"),
-  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
-  endedAt: timestamp("ended_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-})
 
 export const gameplaySessionsTable = pgTable("gameplay_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -97,7 +79,6 @@ export const stashSnapshotsTable = pgTable("stash_snapshots", {
   userId: integer("user_id")
     .references(() => usersTable.id, { onDelete: "cascade" })
     .notNull(),
-  raidId: uuid("raid_id").references(() => raidsTable.id, { onDelete: "set null" }),
   uploadJobId: uuid("upload_job_id").references(() => manualUploadJobsTable.id, {
     onDelete: "set null",
   }),

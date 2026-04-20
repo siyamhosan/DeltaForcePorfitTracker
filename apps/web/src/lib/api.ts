@@ -1,6 +1,7 @@
 import type {
   ActiveSessionDto,
   ActiveSessionRaidDto,
+  OverviewPageDto,
   PaginatedSessionsDto,
   ReopenableSessionDto,
   UploadAnalysisDto,
@@ -71,6 +72,8 @@ export function createApi(getToken: GetToken) {
   return {
     getOverview: () =>
       apiFetch<DashboardOverviewDto>("/app/overview", getToken),
+    getOverviewPage: () =>
+      apiFetch<OverviewPageDto>("/app/overview/page", getToken),
     getSessions: () =>
       apiFetch<SessionHistoryItem[]>("/app/sessions", getToken),
     getSessionsPaginated: (page: number, pageSize = 20) =>
@@ -119,7 +122,6 @@ export function createApi(getToken: GetToken) {
       apiFetch<{
         job: UploadJobDto
         autoConfirmed: boolean
-        raidId?: string
         analysis: UploadAnalysisDto
       }>("/app/uploads/manual", getToken, {
         method: "POST",
@@ -139,7 +141,6 @@ export function createApi(getToken: GetToken) {
     ) =>
       apiFetch<{
         job: UploadJobDto
-        raidId: string
         warning?: UploadConfirmWarningDto
       }>(`/app/uploads/${uploadId}/confirm`, getToken, {
         method: "POST",

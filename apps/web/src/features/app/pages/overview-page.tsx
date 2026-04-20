@@ -1,19 +1,14 @@
-import { useMemo, useState } from "react"
+import {
+  RiArrowDownSLine,
+  RiMedal2Line,
+  RiUploadCloud2Line,
+} from "@remixicon/react"
 import {
   useMutation,
   useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import {
-  RiArrowDownSLine,
-  RiBarChartBoxLine,
-  RiCheckDoubleLine,
-  RiHistoryLine,
-  RiMedal2Line,
-  RiUploadCloud2Line,
-} from "@remixicon/react"
-import { Link } from "react-router-dom"
 import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
@@ -25,9 +20,13 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog"
 import { EmptyStateCard } from "@workspace/ui/components/empty-state-card"
-import { StatCard } from "@workspace/ui/components/stat-card"
+import { motion } from "framer-motion"
+import { useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 
 import { ApiError, createApi } from "@/lib/api"
+import { cn } from "@workspace/ui/lib/utils"
+import { ProfitTimelineChart } from "../components/profit-timeline-chart"
 import { SessionRaidsTable } from "../components/session-raids-table"
 import type { GetToken } from "../types"
 import {
@@ -37,7 +36,6 @@ import {
   formatTimeAgo,
   toMillionValue,
 } from "../utils/format"
-import { cn } from "@workspace/ui/lib/utils"
 
 function profitClassName(total: number) {
   if (total > 0) {
@@ -47,6 +45,35 @@ function profitClassName(total: number) {
     return "text-red-600 dark:text-red-400"
   }
   return "text-zinc-900 dark:text-zinc-100"
+}
+
+const MOMENTUM_GOALS = [5, 9, 14, 20, 30, 45, 60, 80, 100]
+
+function getMomentumProgress(totalRaids: number) {
+  const safeTotal = Math.max(0, Math.floor(totalRaids))
+  const nextGoal =
+    MOMENTUM_GOALS.find((goal) => goal > safeTotal) ?? safeTotal + 10
+  const previousGoal =
+    [...MOMENTUM_GOALS].reverse().find((goal) => goal <= safeTotal) ?? 0
+  const goalSpan = Math.max(1, nextGoal - previousGoal)
+  const progress = Math.min(1, (safeTotal - previousGoal) / goalSpan)
+  const level = MOMENTUM_GOALS.filter((goal) => safeTotal >= goal).length
+  const segmentCount = Math.min(10, goalSpan)
+  const segmentProgress = progress * segmentCount
+  const fullSegments = Math.floor(segmentProgress)
+  const partialSegment = segmentProgress - fullSegments
+
+  return {
+    level,
+    progress,
+    previousGoal,
+    nextGoal,
+    goalSpan,
+    segmentCount,
+    fullSegments,
+    partialSegment,
+    remaining: Math.max(0, nextGoal - safeTotal),
+  }
 }
 
 export function OverviewPage({ getToken }: { getToken: GetToken }) {
@@ -59,34 +86,17 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
     string | null
   >(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
-  const overviewQuery = useQuery({
-    queryKey: ["app", "overview"],
-    queryFn: () => api.getOverview(),
-  })
-  const sessionsQuery = useQuery({
-    queryKey: ["app", "sessions"],
-    queryFn: () => api.getSessions(),
-  })
-  const activeSessionQuery = useQuery({
-    queryKey: ["app", "session", "active"],
-    queryFn: () => api.getActiveSession(),
-    refetchInterval: 10_000,
-  })
-  const reopenableSessionQuery = useQuery({
-    queryKey: ["app", "session", "reopenable"],
-    queryFn: () => api.getReopenableLastSession(),
+  const overviewPageQuery = useQuery({
+    queryKey: ["app", "overview-page"],
+    queryFn: () => api.getOverviewPage(),
     refetchInterval: 10_000,
   })
   const endSessionMutation = useMutation({
     mutationFn: () => api.endSession(),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["app", "session", "active"],
-        }),
-        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview-page"] }),
         queryClient.invalidateQueries({ queryKey: ["app", "session"] }),
-        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
       ])
     },
   })
@@ -94,15 +104,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
     mutationFn: () => api.reopenLastSession(),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["app", "session", "active"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["app", "session", "reopenable"],
-        }),
-        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview-page"] }),
         queryClient.invalidateQueries({ queryKey: ["app", "session"] }),
-        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
       ])
     },
   })
@@ -113,36 +116,25 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
       setDeleteConfirmText("")
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["app", "uploads"] }),
-        queryClient.invalidateQueries({ queryKey: ["app", "overview"] }),
-        queryClient.invalidateQueries({ queryKey: ["app", "sessions"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["app", "session", "active"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["app", "session", "reopenable"],
-        }),
+        queryClient.invalidateQueries({ queryKey: ["app", "overview-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["app", "session"] }),
         queryClient.invalidateQueries({ queryKey: ["app", "leaderboard"] }),
       ])
     },
   })
 
   const error =
-    overviewQuery.error instanceof Error
-      ? overviewQuery.error.message
-      : sessionsQuery.error instanceof Error
-        ? sessionsQuery.error.message
-        : activeSessionQuery.error instanceof Error
-          ? activeSessionQuery.error.message
-          : reopenableSessionQuery.error instanceof Error
-            ? reopenableSessionQuery.error.message
-            : deleteSnapshotMutation.error instanceof ApiError
-              ? deleteSnapshotMutation.error.message
-              : null
-  const overview = overviewQuery.data
-  const sessions = sessionsQuery.data ?? []
-  const activeSession = activeSessionQuery.data?.activeSession ?? null
-  const reopenableSession =
-    reopenableSessionQuery.data?.reopenableSession ?? null
+    overviewPageQuery.error instanceof Error
+      ? overviewPageQuery.error.message
+      : deleteSnapshotMutation.error instanceof ApiError
+        ? deleteSnapshotMutation.error.message
+        : null
+  const overview = overviewPageQuery.data?.overview
+  const sessions = overviewPageQuery.data?.sessions ?? []
+  const activeSession = overviewPageQuery.data?.activeSession ?? null
+  const reopenableSession = overviewPageQuery.data?.reopenableSession ?? null
+  const momentumRaids = activeSession?.totalRaids ?? 0
+  const momentum = getMomentumProgress(momentumRaids)
 
   const sessionRaidQueries = useQueries({
     queries: sessions.map((session) => ({
@@ -184,91 +176,135 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
   }
 
   return (
-    <div className="gap-6 flex flex-col">
-      <div className="border-zinc-200/70 from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 rounded-2xl border bg-gradient-to-br">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          Overview
-        </h1>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Live metrics powered by your uploaded stash snapshots.
-        </p>
-        <div className="mt-4 gap-2 flex flex-wrap items-center">
-          <Link to="/app/uploads">
-            <Button size="sm" className="gap-2">
-              <RiUploadCloud2Line className="h-4 w-4" />
-              Add Snapshot
-            </Button>
-          </Link>
-          <Link to="/app/leaderboard">
-            <Button size="sm" variant="outline" className="gap-2">
-              <RiMedal2Line className="h-4 w-4" />
-              View Leaderboard
-            </Button>
-          </Link>
-          <Link to="/app/sessions">
-            <Button size="sm" variant="outline">
-              Browse Sessions
-            </Button>
-          </Link>
-          <span className="border-zinc-200 px-3 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300 rounded-full border">
-            {sessions.length} sessions tracked
-          </span>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-row justify-between rounded-2xl border border-zinc-200/70 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Overview
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Live metrics powered by your uploaded stash snapshots.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Link to="/app/uploads">
+              <Button size="sm" className="gap-2">
+                <RiUploadCloud2Line className="h-4 w-4" />
+                Add Snapshot
+              </Button>
+            </Link>
+            <Link to="/app/leaderboard">
+              <Button size="sm" variant="outline" className="gap-2">
+                <RiMedal2Line className="h-4 w-4" />
+                View Leaderboard
+              </Button>
+            </Link>
+            <span className="rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+              {sessions.length} sessions tracked
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-4">
+          {/* Total Profit Card (priority) */}
+          <div className="flex max-w-[340px] flex-col justify-between rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-zinc-50 p-5 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:via-zinc-900 dark:to-zinc-950">
+            <div>
+              <h2 className="mb-2 text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
+                Total Profit
+              </h2>
+              <p className={`text-3xl font-extrabold ${totalProfitClass}`}>
+                {toMillionValue(overview?.totalProfit ?? 0)}
+              </p>
+            </div>
+            <p className="mt-auto text-xs text-zinc-500 dark:text-zinc-400">
+              Lifetime of all tracked sessions.
+            </p>
+          </div>
+          {/* Latest Stash Card (secondary) */}
+          <div className="flex max-w-[260px] flex-col justify-between rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-5 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
+            <div>
+              <h3 className="text-md mb-2 font-semibold tracking-tight text-zinc-900 dark:text-white">
+                Latest Stash
+              </h3>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                {toMillionValue(overview?.latestStashValue ?? 0)}
+              </p>
+            </div>
+            <p className="mt-auto text-xs text-zinc-500 dark:text-zinc-400">
+              Last confirmed snapshot.
+            </p>
+          </div>
         </div>
       </div>
 
       {error ? (
-        <div className="border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200 rounded-lg border">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
           {error}
         </div>
       ) : null}
 
-      <div className="gap-6 sm:grid-cols-2 lg:grid-cols-3 grid">
-        <StatCard
-          title="Total Profit"
-          value={toMillionValue(overview?.totalProfit ?? 0)}
-          valueClassName={totalProfitClass}
-          icon={<RiBarChartBoxLine className="h-5 w-5" />}
-        />
-        <StatCard
-          title="Total Raids"
-          value={String(overview?.totalRaids ?? 0)}
-          icon={<RiHistoryLine className="h-5 w-5" />}
-        />
-        <StatCard
-          title="Win Rate"
-          value={`${overview?.winRate ?? 0}%`}
-          className="sm:col-span-2 lg:col-span-1"
-          icon={<RiCheckDoubleLine className="h-5 w-5" />}
-        />
-      </div>
-
-      <div className="gap-4 md:grid-cols-2 grid">
-        <div className="border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-xl border">
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Momentum
-          </p>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {activeSession
-              ? `Current session is active with ${activeSession.totalRaids} confirmed uploads.`
-              : "No active session. Upload a stash screenshot to begin tracking momentum."}
-          </p>
+      <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              Momentum Quest
+            </p>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {activeSession
+                ? `Level ${momentum.level}. Reach ${momentum.nextGoal} captures to unlock the next tier.`
+                : "No active session. Start one to begin a new momentum quest."}
+            </p>
+          </div>
+          <motion.div
+            key={`goal-${momentum.nextGoal}`}
+            layoutId={`momentum-goal-${momentum.nextGoal}`}
+            initial={{ scale: 0.9, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
+          >
+            Next Target: {momentum.nextGoal}
+          </motion.div>
         </div>
-        <div className="border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-xl border">
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Latest Stash
-          </p>
-          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            {toMillionValue(overview?.latestStashValue ?? 0)}
-          </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Updated from your most recent confirmed snapshot.
-          </p>
+        <div className="mt-4">
+          <div className="flex h-3 gap-1">
+            {Array.from({ length: momentum.segmentCount }).map((_, idx) => {
+              const fillPercent =
+                idx < momentum.fullSegments
+                  ? 100
+                  : idx === momentum.fullSegments
+                    ? momentum.partialSegment * 100
+                    : 0
+              return (
+                <div
+                  key={`momentum-segment-${momentum.nextGoal}-${idx}`}
+                  className="h-full flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+                >
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-cyan-400"
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${fillPercent}%` }}
+                    transition={{ type: "spring", stiffness: 120, damping: 22 }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="text-zinc-500 dark:text-zinc-400">
+              {momentum.previousGoal}
+            </span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {momentumRaids}/{momentum.nextGoal} captures
+            </span>
+            <span className="text-zinc-500 dark:text-zinc-400">
+              {momentum.nextGoal}
+            </span>
+          </div>
         </div>
       </div>
 
       {activeSession ? (
-        <div className="border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-xl border">
-          <div className="gap-4 flex items-start justify-between">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 Active Session
@@ -281,7 +317,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
               </p>
             </div>
             <Button
-              variant="outline"
+              variant="destructive"
               onClick={() => endSessionMutation.mutate()}
               disabled={endSessionMutation.isPending}
             >
@@ -289,8 +325,17 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
             </Button>
           </div>
 
-          <div className="mt-4 gap-3 sm:grid-cols-2 lg:grid-cols-5 grid">
-            <div className="border-zinc-200 p-3 dark:border-zinc-800 rounded-lg border">
+          <div className="mt-5">
+            <ProfitTimelineChart
+              activeSession={activeSession}
+              useDemoData={false}
+              showHeader={false}
+              compact
+            />
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Duration
               </p>
@@ -298,7 +343,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 {formatDuration(activeSession.durationSeconds)}
               </p>
             </div>
-            <div className="border-zinc-200 p-3 dark:border-zinc-800 rounded-lg border">
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Initial Stash
               </p>
@@ -306,7 +351,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 {toMillionValue(activeSession.initialStashValue)}
               </p>
             </div>
-            <div className="border-zinc-200 p-3 dark:border-zinc-800 rounded-lg border">
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Current Stash
               </p>
@@ -314,7 +359,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 {toMillionValue(activeSession.currentStashValue)}
               </p>
             </div>
-            <div className="border-zinc-200 p-3 dark:border-zinc-800 rounded-lg border">
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Session Profit
               </p>
@@ -324,7 +369,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                 {toMillionValue(activeSession.totalProfit)}
               </p>
             </div>
-            <div className="border-zinc-200 p-3 dark:border-zinc-800 rounded-lg border">
+            <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Profit / Hour
               </p>
@@ -362,8 +407,8 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
         </div>
       ) : null}
       {!activeSession && reopenableSession ? (
-        <div className="border-amber-200 bg-amber-50/60 p-4 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 rounded-xl border">
-          <div className="gap-3 sm:flex-row sm:items-center flex flex-col items-start justify-between">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
                 Last session ended recently
@@ -402,14 +447,14 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
           }
         />
       ) : (
-        <div className="border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 rounded-xl border">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
             Recent Sessions
           </h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Newest first. Click a session to load and show all raids.
           </p>
-          <div className="mt-4 gap-3 flex flex-col">
+          <div className="mt-4 flex flex-col gap-3">
             {sessions.map((session, sessionIndex) => {
               const expanded = expandedSessionIds.has(session.id)
               const raidQuery = sessionRaidQueries[sessionIndex]
@@ -419,18 +464,18 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
               return (
                 <div
                   key={session.id}
-                  className="border-zinc-200 dark:border-zinc-800 overflow-hidden rounded-xl border"
+                  className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800"
                 >
                   <button
                     type="button"
-                    className="gap-3 p-4 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50 flex w-full flex-col text-left transition-colors"
+                    className="flex w-full flex-col gap-3 p-4 text-left transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50"
                     onClick={() => toggleSessionExpanded(session.id)}
                     aria-expanded={expanded}
                   >
-                    <div className="gap-2 flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span
                         className={cn(
-                          "px-2.5 py-0.5 text-xs font-medium w-fit rounded-full border",
+                          "w-fit rounded-full border px-2.5 py-0.5 text-xs font-medium",
                           session.status === "active"
                             ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
                             : "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300"
@@ -440,13 +485,13 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                       </span>
                       <RiArrowDownSLine
                         className={cn(
-                          "h-5 w-5 text-zinc-500 dark:text-zinc-400 shrink-0 transition-transform",
+                          "h-5 w-5 shrink-0 text-zinc-500 transition-transform dark:text-zinc-400",
                           expanded && "rotate-180"
                         )}
                         aria-hidden
                       />
                     </div>
-                    <div className="gap-3 sm:grid-cols-3 lg:grid-cols-6 grid grid-cols-2">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                       <div>
                         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           Start
@@ -516,7 +561,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
                     </p>
                   </button>
                   {expanded ? (
-                    <div className="border-zinc-200 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/30 border-t">
+                    <div className="border-t border-zinc-200 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/30">
                       {raidQuery?.isLoading ? (
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                           Loading raids…
@@ -561,7 +606,7 @@ export function OverviewPage({ getToken }: { getToken: GetToken }) {
               setDeleteConfirmText(event.target.value.toUpperCase())
             }
             placeholder="Type DELETE"
-            className="border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400 w-full rounded-md border"
+            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-red-900 placeholder:text-red-400 dark:border-red-800 dark:bg-zinc-950 dark:text-red-200 dark:placeholder:text-red-400"
           />
           {deleteSnapshotMutation.error instanceof Error ? (
             <p className="text-xs text-red-600 dark:text-red-400">

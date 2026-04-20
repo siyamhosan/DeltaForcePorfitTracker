@@ -66,7 +66,6 @@ export type UploadJobDto = {
   editedByUser: boolean
   confirmedAt: string | null
   sessionId?: string | null
-  raidId?: string | null
   source?: "manual_upload" | "desktop_client" | null
   processingFailureReason?: string | null
   createdAt: string
@@ -143,6 +142,13 @@ export type DashboardOverviewDto = {
   latestStashValue: number
   activeSessionProfit: number
   activeSessionDurationSeconds: number
+}
+
+export type OverviewPageDto = {
+  overview: DashboardOverviewDto
+  sessions: SessionHistoryItem[]
+  activeSession: ActiveSessionDto | null
+  reopenableSession: ReopenableSessionDto | null
 }
 
 export const createApiKeySchema = z.object({

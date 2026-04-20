@@ -13,7 +13,6 @@ import { env } from "../../config/env"
 import { db } from "../../db/client"
 import {
   manualUploadJobsTable,
-  raidsTable,
   stashSnapshotsTable,
   usersTable,
 } from "../../db/schema"
@@ -39,6 +38,7 @@ import {
   endActiveSession,
   getActiveSession,
   getOverview,
+  getOverviewPageData,
   getSessionByIdForUser,
   getReopenableLastSession,
   getSessionHistory,
@@ -93,11 +93,6 @@ async function persistConfirmedSnapshot(params: {
   uploadJobId: string
   stashValue: number
   confidence: string | null
-  raidMode: "operations" | "warfare"
-  extracted: boolean
-  loadoutCost: number
-  consumablesCost: number
-  insuranceCost: number
   confirmedAt: Date
 }) {
   const session = await resolveSessionForSnapshot(
@@ -105,23 +100,8 @@ async function persistConfirmedSnapshot(params: {
     params.stashValue,
     params.confirmedAt
   )
-  const [raid] = await db
-    .insert(raidsTable)
-    .values({
-      userId: params.userId,
-      sessionId: session.id,
-      mode: params.raidMode,
-      extracted: params.extracted,
-      loadoutCost: params.loadoutCost.toString(),
-      consumablesCost: params.consumablesCost.toString(),
-      insuranceCost: params.insuranceCost.toString(),
-      createdAt: params.confirmedAt,
-    })
-    .returning()
-
   await db.insert(stashSnapshotsTable).values({
     userId: params.userId,
-    raidId: raid.id,
     uploadJobId: params.uploadJobId,
     sessionId: session.id,
     stashValue: params.stashValue.toString(),
@@ -129,8 +109,6 @@ async function persistConfirmedSnapshot(params: {
     source: "manual_upload",
     createdAt: params.confirmedAt,
   })
-
-  return raid.id
 }
 
 async function getLatestStashValue(userId: number) {
@@ -287,6 +265,14 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
     }
     const user = currentAuth.localUser
     return getOverview(user.id)
+  })
+  .get("/overview/page", async ({ authContext, set }) => {
+    const currentAuth = requireAuthContext(authContext, set)
+    if (!currentAuth) {
+      return { error: "Unauthorized" }
+    }
+    const user = currentAuth.localUser
+    return getOverviewPageData(user.id)
   })
   .get("/sessions", async ({ authContext, set }) => {
     const currentAuth = requireAuthContext(authContext, set)
@@ -469,16 +455,11 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
         analysis.stashValueMillions !== null
       ) {
         const confirmedAt = new Date()
-        const raidId = await persistConfirmedSnapshot({
+        await persistConfirmedSnapshot({
           userId: user.id,
           uploadJobId: job.id,
           stashValue: analysis.stashValueMillions,
           confidence: job.confidence,
-          raidMode: "operations",
-          extracted: false,
-          loadoutCost: 0,
-          consumablesCost: 0,
-          insuranceCost: 0,
           confirmedAt,
         })
         const [autoConfirmedJob] = await db
@@ -510,7 +491,6 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
         return {
           job: toUploadJobDto(autoConfirmedJob),
           autoConfirmed: true,
-          raidId,
           analysis,
         }
       }
@@ -578,16 +558,11 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       }
 
       const confirmedAt = new Date()
-      const raidId = await persistConfirmedSnapshot({
+      await persistConfirmedSnapshot({
         userId: user.id,
         uploadJobId: uploadJob.id,
         stashValue: raidPayload.stashValue,
         confidence: uploadJob.confidence,
-        raidMode: raidPayload.raidMode,
-        extracted: raidPayload.extracted,
-        loadoutCost: raidPayload.loadoutCost,
-        consumablesCost: raidPayload.consumablesCost,
-        insuranceCost: raidPayload.insuranceCost,
         confirmedAt,
       })
 
@@ -617,7 +592,7 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
 
       await rebuildAllTimeLeaderboardForUser(user.id)
 
-      return { job: toUploadJobDto(updatedJob), raidId }
+      return { job: toUploadJobDto(updatedJob) }
     }
   )
   .delete(
@@ -672,7 +647,7 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
           })
     const firstByUploadId = new Map<
       string,
-      { sessionId: string | null; raidId: string | null }
+      { sessionId: string | null }
     >()
     for (const snapshot of snapshotRows) {
       if (!snapshot.uploadJobId || firstByUploadId.has(snapshot.uploadJobId)) {
@@ -680,7 +655,6 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       }
       firstByUploadId.set(snapshot.uploadJobId, {
         sessionId: snapshot.sessionId,
-        raidId: snapshot.raidId,
       })
     }
 
@@ -689,7 +663,6 @@ export const appRoutes = new Elysia({ prefix: "/v1/app" })
       return {
         ...toUploadJobDto(job),
         sessionId: linked?.sessionId ?? null,
-        raidId: linked?.raidId ?? null,
       }
     })
   })
