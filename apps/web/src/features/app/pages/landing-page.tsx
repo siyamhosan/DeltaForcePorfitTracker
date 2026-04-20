@@ -12,10 +12,9 @@ import {
 import { AuthShell } from "@workspace/ui/components/auth-shell"
 import { MarketingPanel } from "@workspace/ui/components/marketing-panel"
 import type { ReactNode } from "react"
-import { Link, Navigate } from "react-router-dom"
+import { Navigate } from "react-router-dom"
 
 import { getRouteSeo } from "@/seo/route-seo"
-import { PREVIEW_IMG_DESKTOP, PREVIEW_IMG_WEB } from "@/seo/site-config"
 import { SeoHead, buildPublicSchemas } from "@/seo/seo-head"
 
 export function LandingPage({
@@ -128,30 +127,6 @@ export function LandingPage({
             headline="Profit tracking that fits your runs."
             description="Screenshot your stash, review the numbers, watch trends, and climb the boards."
             features={marketingFeatures}
-            preview={
-              <div className="grid gap-3 sm:grid-cols-2">
-                <figure className="space-y-2">
-                  <img
-                    src={PREVIEW_IMG_WEB}
-                    alt="Web dashboard with stash value charts and summaries"
-                    className="w-full rounded-lg border border-zinc-800/80 shadow-md"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <figcaption className="text-xs text-zinc-500">Web dashboard</figcaption>
-                </figure>
-                <figure className="space-y-2">
-                  <img
-                    src={PREVIEW_IMG_DESKTOP}
-                    alt="Desktop tracker with hotkey capture and profit summary"
-                    className="w-full rounded-lg border border-zinc-800/80 shadow-md"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <figcaption className="text-xs text-zinc-500">Desktop hotkey capture</figcaption>
-                </figure>
-              </div>
-            }
             footer={
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p>© {new Date().getFullYear()} Delta Force Profit Tracker</p>
@@ -165,25 +140,25 @@ export function LandingPage({
                   <span>Open source</span>
                 </a>
                 <div className="w-full text-xs text-zinc-500 dark:text-zinc-400">
-                  <Link to="/features/stash-tracker" className="hover:underline">
+                  <a href="/features/stash-tracker" className="hover:underline">
                     Stash tracker
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/features/profit-calculator" className="hover:underline">
+                  <a href="/features/profit-calculator" className="hover:underline">
                     Profit calculator
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/features/ocr-stash-value" className="hover:underline">
+                  <a href="/features/ocr-stash-value" className="hover:underline">
                     OCR stash value
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/self-hosted-game-profit-tracker" className="hover:underline">
+                  <a href="/self-hosted-game-profit-tracker" className="hover:underline">
                     Self-hosted
-                  </Link>{" "}
+                  </a>{" "}
                   ·{" "}
-                  <Link to="/open-source-stash-analytics" className="hover:underline">
+                  <a href="/open-source-stash-analytics" className="hover:underline">
                     Open source analytics
-                  </Link>
+                  </a>
                 </div>
               </div>
             }
