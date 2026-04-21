@@ -1,9 +1,10 @@
 import cluster from 'node:cluster'
-import os from 'node:os'
 import process from 'node:process'
 
+const INSTANCE_COUNT = 2
+
 if (cluster.isPrimary) {
-  	for (let i = 0; i < os.availableParallelism(); i++)
+  	for (let i = 0; i < INSTANCE_COUNT; i++)
     	cluster.fork()
 } else {
   	await import('./server')
