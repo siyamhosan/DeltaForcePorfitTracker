@@ -46,8 +46,8 @@ The in-game profile is great, but it doesn't tell the whole story. If you want t
 
 ### Downloads
 
-- [Delta Force Desktop Tracker Setup (.exe)](https://github.com/siyamhosan/DeltaForcePorfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64-setup.exe)
-- [Delta Force Desktop Tracker Installer (.msi)](https://github.com/siyamhosan/DeltaForcePorfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64_en-US.msi)
+- [Delta Force Desktop Tracker Setup (.exe)](https://github.com/siyamhosan/DeltaForceProfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64-setup.exe)
+- [Delta Force Desktop Tracker Installer (.msi)](https://github.com/siyamhosan/DeltaForceProfitTracker/releases/download/v0.1.0/Delta.Force.Desktop.Tracker_0.1.0_x64_en-US.msi)
 
 ---
 

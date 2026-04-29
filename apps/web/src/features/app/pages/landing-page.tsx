@@ -115,7 +115,7 @@ export function LandingPage({
         hint={
           <span>
             (Press{" "}
-            <kbd className="px-1.5 py-0.5 rounded-md border bg-muted font-sans">
+            <kbd className="rounded-md border bg-muted px-1.5 py-0.5 font-sans">
               d
             </kbd>{" "}
             for dark mode)
@@ -128,18 +128,18 @@ export function LandingPage({
             description="Screenshot your stash, review the numbers, watch trends, and climb the boards."
             features={marketingFeatures}
             footer={
-              <div className="gap-4 flex flex-wrap items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <p>© {new Date().getFullYear()} Delta Force Profit Tracker</p>
                 <a
-                  href="https://github.com/siyamhosan/DeltaForcePorfitTracker"
+                  href="https://github.com/siyamhosan/DeltaForceProfitTracker"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="gap-2 text-zinc-500 flex items-center hover:underline"
+                  className="flex items-center gap-2 text-zinc-500 hover:underline"
                 >
                   <RiGithubFill className="h-5 w-5 shrink-0" aria-hidden />
                   <span>Open source</span>
                 </a>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 w-full">
+                <div className="w-full text-xs text-zinc-500 dark:text-zinc-400">
                   <a
                     href="/features/delta-force-stats"
                     className="hover:underline"

@@ -122,7 +122,7 @@ export const buildPublicSchemas = (
       "@type": "Organization",
       name: SITE_NAME,
       url: SITE_URL,
-      sameAs: ["https://github.com/siyamhosan/DeltaForcePorfitTracker"],
+      sameAs: ["https://github.com/siyamhosan/DeltaForceProfitTracker"],
     },
     {
       "@context": "https://schema.org",
